@@ -115,6 +115,47 @@ export const PropertiesPanel: React.FC<Props> = ({
         <Field label="Position along wall (0-1)">
           <NumIn v={o.t} step={0.05} onChange={(v) => updateOpening(o.id, { t: Math.max(0, Math.min(1, v)) })} />
         </Field>
+        {o.kind === "door" && (() => {
+          const w = floor.walls.find((wl) => wl.id === o.wallId);
+          const horizontal = w ? w.y1 === w.y2 : true;
+          // Map (hinge, swing) -> direction label depending on wall orientation
+          const hinge = (o.hinge ?? 0) as 0 | 1;
+          const swing = (o.swing ?? 1) as -1 | 1;
+          const value = `${hinge}_${swing}`;
+          const opts = horizontal
+            ? [
+                { v: "0_-1", label: "Hinge Left, swing Up (Back)" },
+                { v: "0_1",  label: "Hinge Left, swing Down (Front)" },
+                { v: "1_-1", label: "Hinge Right, swing Up (Back)" },
+                { v: "1_1",  label: "Hinge Right, swing Down (Front)" },
+              ]
+            : [
+                { v: "0_-1", label: "Hinge Top, swing Left" },
+                { v: "0_1",  label: "Hinge Top, swing Right" },
+                { v: "1_-1", label: "Hinge Bottom, swing Left" },
+                { v: "1_1",  label: "Hinge Bottom, swing Right" },
+              ];
+          return (
+            <Field label="Door direction">
+              <select className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                value={value}
+                onChange={(e) => {
+                  const [h, s] = e.target.value.split("_");
+                  updateOpening(o.id, { hinge: Number(h) as 0 | 1, swing: Number(s) as -1 | 1 });
+                }}>
+                {opts.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}
+              </select>
+              <div className="mt-2 grid grid-cols-2 gap-1">
+                <Button size="sm" variant="outline" onClick={() => updateOpening(o.id, { hinge: (hinge === 0 ? 1 : 0) as 0 | 1 })}>
+                  Flip hinge ↔
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => updateOpening(o.id, { swing: (swing === 1 ? -1 : 1) as -1 | 1 })}>
+                  Flip swing ↕
+                </Button>
+              </div>
+            </Field>
+          );
+        })()}
         <Field label="Label">
           <Input value={o.label || ""} onChange={(e) => updateOpening(o.id, { label: e.target.value })} />
         </Field>

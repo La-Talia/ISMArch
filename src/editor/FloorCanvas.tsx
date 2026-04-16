@@ -330,25 +330,43 @@ export const FloorCanvas: React.FC<Props> = ({
                   fill="hsl(var(--blueprint-bg))"
                   stroke={isSel ? "hsl(var(--selection))" : "none"}
                 />
-                {o.kind === "door" ? (
-                  <>
-                    <line
-                      x1={ftToPx(cx) - (horizontal ? wid / 2 : 0)}
-                      y1={ftToPx(cy) - (horizontal ? 0 : wid / 2)}
-                      x2={ftToPx(cx) + (horizontal ? wid / 2 : 0)}
-                      y2={ftToPx(cy) + (horizontal ? 0 : wid / 2)}
-                      stroke="hsl(var(--wall))" strokeWidth={1.5}
-                    />
-                    <path
-                      d={
-                        horizontal
-                          ? `M ${ftToPx(cx) - wid / 2} ${ftToPx(cy)} A ${wid} ${wid} 0 0 1 ${ftToPx(cx) - wid / 2 + wid} ${ftToPx(cy) - wid}`
-                          : `M ${ftToPx(cx)} ${ftToPx(cy) - wid / 2} A ${wid} ${wid} 0 0 1 ${ftToPx(cx) + wid} ${ftToPx(cy) - wid / 2 + wid}`
-                      }
-                      fill="none" stroke="hsl(var(--door-swing))" strokeWidth={1} strokeDasharray="3 2"
-                    />
-                  </>
-                ) : (
+                {o.kind === "door" ? (() => {
+                  const hinge = (o.hinge ?? 0) as 0 | 1;
+                  const swing = (o.swing ?? 1) as -1 | 1;
+                  const cxPx = ftToPx(cx), cyPx = ftToPx(cy);
+                  // hinge point along the wall (0 = "start" side, 1 = "end" side)
+                  const hxPx = horizontal
+                    ? cxPx + (hinge === 0 ? -wid / 2 : wid / 2)
+                    : cxPx;
+                  const hyPx = horizontal
+                    ? cyPx
+                    : cyPx + (hinge === 0 ? -wid / 2 : wid / 2);
+                  // far end of door leaf (closed position, along wall)
+                  const lxPx = horizontal
+                    ? cxPx + (hinge === 0 ? wid / 2 : -wid / 2)
+                    : cxPx;
+                  const lyPx = horizontal
+                    ? cyPx
+                    : cyPx + (hinge === 0 ? wid / 2 : -wid / 2);
+                  // open-leaf endpoint (perpendicular from hinge)
+                  const oxPx = horizontal ? hxPx : hxPx + swing * wid;
+                  const oyPx = horizontal ? hyPx + swing * wid : hyPx;
+                  // arc sweep flag depends on hinge + swing combination
+                  const sweep =
+                    horizontal
+                      ? (hinge === 0 ? (swing === 1 ? 1 : 0) : (swing === 1 ? 0 : 1))
+                      : (hinge === 0 ? (swing === 1 ? 0 : 1) : (swing === 1 ? 1 : 0));
+                  return (
+                    <>
+                      <line x1={hxPx} y1={hyPx} x2={oxPx} y2={oyPx}
+                        stroke="hsl(var(--wall))" strokeWidth={1.5} />
+                      <path
+                        d={`M ${lxPx} ${lyPx} A ${wid} ${wid} 0 0 ${sweep} ${oxPx} ${oyPx}`}
+                        fill="none" stroke="hsl(var(--door-swing))" strokeWidth={1} strokeDasharray="3 2"
+                      />
+                    </>
+                  );
+                })() : (
                   <>
                     {/* window: 3 parallel lines */}
                     {[-1, 0, 1].map((k) => (

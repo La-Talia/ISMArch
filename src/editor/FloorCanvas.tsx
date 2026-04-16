@@ -19,6 +19,7 @@ type DragState =
   | { kind: "prop_move"; id: string; startX: number; startY: number; origX: number; origY: number }
   | { kind: "prop_resize"; id: string; corner: "se" | "sw" | "ne" | "nw"; origW: number; origH: number; origX: number; origY: number; startX: number; startY: number }
   | { kind: "wall_endpoint"; id: string; end: 1 | 2; }
+  | { kind: "wall_move"; id: string; horizontal: boolean; startX: number; startY: number; origX1: number; origY1: number; origX2: number; origY2: number }
   | { kind: "opening_slide"; id: string; wall: Wall }
   | { kind: "room_move"; id: string; startX: number; startY: number; origX: number; origY: number }
   | { kind: "room_label_move"; id: string; startX: number; startY: number; origDx: number; origDy: number };
@@ -72,6 +73,17 @@ export const FloorCanvas: React.FC<Props> = ({
         if (horizontal) updateWall(w.id, { x2: snap(x) });
         else updateWall(w.id, { y2: snap(y) });
       }
+    } else if (ds.kind === "wall_move") {
+      const snap = (v: number) => Math.round(v * 4) / 4;
+      if (ds.horizontal) {
+        const dy = y - ds.startY;
+        const ny = snap(ds.origY1 + dy);
+        updateWall(ds.id, { y1: ny, y2: ny });
+      } else {
+        const dx = x - ds.startX;
+        const nx = snap(ds.origX1 + dx);
+        updateWall(ds.id, { x1: nx, x2: nx });
+      }
     } else if (ds.kind === "opening_slide") {
       const w = ds.wall;
       const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
@@ -109,6 +121,15 @@ export const FloorCanvas: React.FC<Props> = ({
     e.stopPropagation();
     setSelection({ kind: "wall", id: w.id });
     dragRef.current = { kind: "wall_endpoint", id: w.id, end };
+  };
+  const startWallMove = (w: Wall, e: React.PointerEvent) => {
+    e.stopPropagation();
+    setSelection({ kind: "wall", id: w.id });
+    const { x, y } = toFt(e.clientX, e.clientY);
+    dragRef.current = {
+      kind: "wall_move", id: w.id, horizontal: w.y1 === w.y2,
+      startX: x, startY: y, origX1: w.x1, origY1: w.y1, origX2: w.x2, origY2: w.y2,
+    };
   };
   const startOpeningDrag = (o: Opening, e: React.PointerEvent) => {
     e.stopPropagation();
@@ -241,6 +262,9 @@ export const FloorCanvas: React.FC<Props> = ({
             const y = horizontal ? ftToPx(w.y1) - t / 2 : ftToPx(Math.min(w.y1, w.y2));
             const ww = horizontal ? Math.abs(w.x2 - w.x1) * PX_PER_FT : t;
             const hh = horizontal ? t : Math.abs(w.y2 - w.y1) * PX_PER_FT;
+            const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
+            const midX = ftToPx((w.x1 + w.x2) / 2);
+            const midY = ftToPx((w.y1 + w.y2) / 2);
             return (
               <g key={w.id}>
                 <rect
@@ -249,10 +273,23 @@ export const FloorCanvas: React.FC<Props> = ({
                   stroke={isSel ? "hsl(var(--selection))" : "none"}
                   strokeWidth={1.5}
                   onClick={(e) => { e.stopPropagation(); setSelection({ kind: "wall", id: w.id }); }}
-                  className="cursor-pointer"
+                  onPointerDown={(e) => startWallMove(w, e)}
+                  className={horizontal ? "cursor-ns-resize hover:opacity-80" : "cursor-ew-resize hover:opacity-80"}
                 />
                 {isSel && (
                   <>
+                    {/* Live length badge */}
+                    <g style={{ pointerEvents: "none" }}>
+                      <rect
+                        x={midX - 22} y={midY - 9} width={44} height={18} rx={3}
+                        fill="hsl(var(--selection))"
+                      />
+                      <text x={midX} y={midY + 1} textAnchor="middle" dominantBaseline="middle"
+                        fontSize={11} fontFamily="ui-sans-serif, system-ui"
+                        fill="hsl(var(--background))" className="font-semibold">
+                        {len.toFixed(2)}'
+                      </text>
+                    </g>
                     <circle cx={ftToPx(w.x1)} cy={ftToPx(w.y1)} r={6}
                       fill="hsl(var(--selection))"
                       onPointerDown={(e) => startWallEndpointDrag(w, 1, e)}
@@ -387,6 +424,21 @@ export const FloorCanvas: React.FC<Props> = ({
               ftToPx={ftToPx}
               ticks={Array.from(new Set(floor.walls.filter(w => w.y1 === w.y2 && w.x1 !== w.x2).flatMap(w => [w.x1, w.x2])
                 .concat([floor.bounds.x, floor.bounds.x + floor.bounds.w]))).sort((a, b) => a - b)}
+              onEditSegment={(a, b) => {
+                const cur = Math.abs(b - a);
+                const input = window.prompt(`Segment length (ft). Current: ${cur.toFixed(2)}'`, cur.toFixed(2));
+                if (!input) return;
+                const next = parseFloat(input);
+                if (!isFinite(next) || next <= 0) return;
+                const delta = next - cur;
+                const threshold = Math.min(a, b) + 0.001;
+                floor.walls.forEach((w) => {
+                  const patch: Partial<Wall> = {};
+                  if (w.x1 > threshold) patch.x1 = w.x1 + delta;
+                  if (w.x2 > threshold) patch.x2 = w.x2 + delta;
+                  if (Object.keys(patch).length) updateWall(w.id, patch);
+                });
+              }}
             />
             {/* Right vertical dimension */}
             <DimChain
@@ -396,6 +448,21 @@ export const FloorCanvas: React.FC<Props> = ({
               ftToPx={ftToPx}
               ticks={Array.from(new Set(floor.walls.filter(w => w.x1 === w.x2 && w.y1 !== w.y2).flatMap(w => [w.y1, w.y2])
                 .concat([floor.bounds.y, floor.bounds.y + floor.bounds.h]))).sort((a, b) => a - b)}
+              onEditSegment={(a, b) => {
+                const cur = Math.abs(b - a);
+                const input = window.prompt(`Segment length (ft). Current: ${cur.toFixed(2)}'`, cur.toFixed(2));
+                if (!input) return;
+                const next = parseFloat(input);
+                if (!isFinite(next) || next <= 0) return;
+                const delta = next - cur;
+                const threshold = Math.min(a, b) + 0.001;
+                floor.walls.forEach((w) => {
+                  const patch: Partial<Wall> = {};
+                  if (w.y1 > threshold) patch.y1 = w.y1 + delta;
+                  if (w.y2 > threshold) patch.y2 = w.y2 + delta;
+                  if (Object.keys(patch).length) updateWall(w.id, patch);
+                });
+              }}
             />
           </g>
         )}
@@ -409,12 +476,12 @@ const DimChain: React.FC<{
   from: number; to: number; along: number;
   ftToPx: (n: number) => number;
   ticks: number[];
-}> = ({ orientation, from, to, along, ftToPx, ticks }) => {
+  onEditSegment?: (a: number, b: number) => void;
+}> = ({ orientation, from, to, along, ftToPx, ticks, onEditSegment }) => {
   const horizontal = orientation === "horizontal";
   const segments = ticks.slice(0, -1).map((t, i) => ({ a: t, b: ticks[i + 1] }));
   return (
     <g stroke="hsl(var(--dimension))" fill="hsl(var(--dimension))" fontSize={10} fontFamily="ui-sans-serif, system-ui">
-      {/* main line */}
       {horizontal ? (
         <line x1={ftToPx(from)} y1={ftToPx(along)} x2={ftToPx(to)} y2={ftToPx(along)} strokeWidth={1} />
       ) : (
@@ -431,10 +498,19 @@ const DimChain: React.FC<{
         const mid = (s.a + s.b) / 2;
         const len = Math.abs(s.b - s.a);
         if (len < 0.5) return null;
-        return horizontal ? (
-          <text key={i} x={ftToPx(mid)} y={ftToPx(along) - 8} textAnchor="middle" stroke="none">{len.toFixed(1)}'</text>
-        ) : (
-          <text key={i} x={ftToPx(along) + 10} y={ftToPx(mid)} dominantBaseline="middle" stroke="none">{len.toFixed(1)}'</text>
+        const tx = horizontal ? ftToPx(mid) : ftToPx(along) + 10;
+        const ty = horizontal ? ftToPx(along) - 8 : ftToPx(mid);
+        return (
+          <g key={i} onClick={() => onEditSegment?.(s.a, s.b)} className="cursor-pointer">
+            <rect
+              x={tx - 16} y={ty - 9} width={32} height={14} rx={2}
+              fill="hsl(var(--background))" stroke="hsl(var(--dimension))" strokeWidth={0.5}
+              opacity={0.9}
+            />
+            <text x={tx} y={ty - 1} textAnchor="middle" dominantBaseline="middle" stroke="none" className="font-medium">
+              {len.toFixed(1)}'
+            </text>
+          </g>
         );
       })}
     </g>

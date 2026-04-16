@@ -37,7 +37,7 @@ export interface PropItem {
   type: string; // key into PROP_CATALOG
   x: number; y: number; // center, in ft
   w: number; h: number; // ft
-  rotation: number; // degrees
+  rotation?: number; // degrees
   label?: string;
 }
 

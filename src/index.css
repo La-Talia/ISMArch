@@ -53,6 +53,20 @@ All colors MUST be HSL.
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Floor plan blueprint tokens */
+    --blueprint-bg: 210 40% 98%;
+    --blueprint-grid: 215 25% 88%;
+    --blueprint-grid-strong: 215 20% 75%;
+    --wall: 222 30% 18%;
+    --wall-fill: 222 30% 18%;
+    --room-fill: 210 40% 96%;
+    --room-fill-alt: 38 60% 95%;
+    --dimension: 222 30% 30%;
+    --prop-stroke: 222 25% 25%;
+    --prop-fill: 0 0% 100%;
+    --door-swing: 215 20% 60%;
+    --selection: 210 100% 50%;
   }
 
   .dark {

@@ -262,6 +262,9 @@ export const FloorCanvas: React.FC<Props> = ({
             const y = horizontal ? ftToPx(w.y1) - t / 2 : ftToPx(Math.min(w.y1, w.y2));
             const ww = horizontal ? Math.abs(w.x2 - w.x1) * PX_PER_FT : t;
             const hh = horizontal ? t : Math.abs(w.y2 - w.y1) * PX_PER_FT;
+            const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
+            const midX = ftToPx((w.x1 + w.x2) / 2);
+            const midY = ftToPx((w.y1 + w.y2) / 2);
             return (
               <g key={w.id}>
                 <rect
@@ -270,10 +273,23 @@ export const FloorCanvas: React.FC<Props> = ({
                   stroke={isSel ? "hsl(var(--selection))" : "none"}
                   strokeWidth={1.5}
                   onClick={(e) => { e.stopPropagation(); setSelection({ kind: "wall", id: w.id }); }}
-                  className="cursor-pointer"
+                  onPointerDown={(e) => startWallMove(w, e)}
+                  className={horizontal ? "cursor-ns-resize hover:opacity-80" : "cursor-ew-resize hover:opacity-80"}
                 />
                 {isSel && (
                   <>
+                    {/* Live length badge */}
+                    <g style={{ pointerEvents: "none" }}>
+                      <rect
+                        x={midX - 22} y={midY - 9} width={44} height={18} rx={3}
+                        fill="hsl(var(--selection))"
+                      />
+                      <text x={midX} y={midY + 1} textAnchor="middle" dominantBaseline="middle"
+                        fontSize={11} fontFamily="ui-sans-serif, system-ui"
+                        fill="hsl(var(--background))" className="font-semibold">
+                        {len.toFixed(2)}'
+                      </text>
+                    </g>
                     <circle cx={ftToPx(w.x1)} cy={ftToPx(w.y1)} r={6}
                       fill="hsl(var(--selection))"
                       onPointerDown={(e) => startWallEndpointDrag(w, 1, e)}

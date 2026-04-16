@@ -178,37 +178,57 @@ export const FloorCanvas: React.FC<Props> = ({
 
         {/* Rooms */}
         <g>
-          {floor.rooms.map((r) => (
-            <g key={r.id} onClick={(e) => { e.stopPropagation(); setSelection({ kind: "room", id: r.id }); }}>
-              <rect
-                x={ftToPx(r.x)} y={ftToPx(r.y)}
-                width={r.w * PX_PER_FT} height={r.h * PX_PER_FT}
-                fill={r.fill === "alt" ? "hsl(var(--room-fill-alt))" : "hsl(var(--room-fill))"}
-                stroke={selection?.kind === "room" && selection.id === r.id ? "hsl(var(--selection))" : "transparent"}
-                strokeWidth={1.5}
-                className="cursor-pointer"
-              />
-              <text
-                x={ftToPx(r.x + r.w / 2)} y={ftToPx(r.y + r.h / 2)}
-                textAnchor="middle" dominantBaseline="middle"
-                fill="hsl(var(--foreground))"
-                fontSize={Math.min(14, Math.max(9, Math.min(r.w, r.h) * 1.4))}
-                fontFamily="ui-sans-serif, system-ui"
-                className="pointer-events-none font-medium"
-              >
-                {r.name}
-              </text>
-              <text
-                x={ftToPx(r.x + r.w / 2)} y={ftToPx(r.y + r.h / 2) + 14}
-                textAnchor="middle" dominantBaseline="middle"
-                fill="hsl(var(--muted-foreground))"
-                fontSize={9}
-                className="pointer-events-none"
-              >
-                {r.w.toFixed(1)}' × {r.h.toFixed(1)}'
-              </text>
-            </g>
-          ))}
+          {floor.rooms.map((r) => {
+            const isSel = selection?.kind === "room" && selection.id === r.id;
+            const isLabelSel = selection?.kind === "room_label" && selection.id === r.id;
+            const lx = ftToPx(r.x + r.w / 2 + (r.labelDx || 0));
+            const ly = ftToPx(r.y + r.h / 2 + (r.labelDy || 0));
+            const fontSize = Math.min(14, Math.max(9, Math.min(r.w, r.h) * 1.4));
+            return (
+              <g key={r.id}>
+                <rect
+                  x={ftToPx(r.x)} y={ftToPx(r.y)}
+                  width={r.w * PX_PER_FT} height={r.h * PX_PER_FT}
+                  fill={r.fill === "alt" ? "hsl(var(--room-fill-alt))" : "hsl(var(--room-fill))"}
+                  stroke={isSel ? "hsl(var(--selection))" : "transparent"}
+                  strokeWidth={1.5}
+                  className="cursor-move"
+                  onPointerDown={(e) => startRoomDrag(r, e)}
+                />
+                <g
+                  onPointerDown={(e) => startRoomLabelDrag(r, e)}
+                  className="cursor-move"
+                >
+                  {isLabelSel && (
+                    <rect
+                      x={lx - 42} y={ly - fontSize - 2}
+                      width={84} height={fontSize * 2 + 8}
+                      fill="none" stroke="hsl(var(--selection))" strokeWidth={1} strokeDasharray="3 2"
+                    />
+                  )}
+                  <text
+                    x={lx} y={ly}
+                    textAnchor="middle" dominantBaseline="middle"
+                    fill="hsl(var(--foreground))"
+                    fontSize={fontSize}
+                    fontFamily="ui-sans-serif, system-ui"
+                    className="font-medium select-none"
+                  >
+                    {r.name}
+                  </text>
+                  <text
+                    x={lx} y={ly + fontSize + 2}
+                    textAnchor="middle" dominantBaseline="middle"
+                    fill="hsl(var(--muted-foreground))"
+                    fontSize={9}
+                    className="select-none"
+                  >
+                    {r.w.toFixed(1)}' × {r.h.toFixed(1)}'
+                  </text>
+                </g>
+              </g>
+            );
+          })}
         </g>
 
         {/* Walls */}

@@ -78,6 +78,18 @@ export const FloorCanvas: React.FC<Props> = ({
       const dx = x - w.x1, dy = y - w.y1;
       const proj = (dx * (w.x2 - w.x1) + dy * (w.y2 - w.y1)) / (len * len);
       updateOpening(ds.id, { t: Math.max(0.05, Math.min(0.95, proj)) });
+    } else if (ds.kind === "room_move") {
+      const dx = x - ds.startX, dy = y - ds.startY;
+      updateRoom(ds.id, {
+        x: Math.round((ds.origX + dx) * 4) / 4,
+        y: Math.round((ds.origY + dy) * 4) / 4,
+      });
+    } else if (ds.kind === "room_label_move") {
+      const dx = x - ds.startX, dy = y - ds.startY;
+      updateRoom(ds.id, {
+        labelDx: Math.round((ds.origDx + dx) * 4) / 4,
+        labelDy: Math.round((ds.origDy + dy) * 4) / 4,
+      });
     }
   };
   const onPointerUp = () => { dragRef.current = null; };
@@ -104,6 +116,18 @@ export const FloorCanvas: React.FC<Props> = ({
     const w = floor.walls.find((w) => w.id === o.wallId);
     if (!w) return;
     dragRef.current = { kind: "opening_slide", id: o.id, wall: w };
+  };
+  const startRoomDrag = (r: import("./types").Room, e: React.PointerEvent) => {
+    e.stopPropagation();
+    setSelection({ kind: "room", id: r.id });
+    const { x, y } = toFt(e.clientX, e.clientY);
+    dragRef.current = { kind: "room_move", id: r.id, startX: x, startY: y, origX: r.x, origY: r.y };
+  };
+  const startRoomLabelDrag = (r: import("./types").Room, e: React.PointerEvent) => {
+    e.stopPropagation();
+    setSelection({ kind: "room_label", id: r.id });
+    const { x, y } = toFt(e.clientX, e.clientY);
+    dragRef.current = { kind: "room_label_move", id: r.id, startX: x, startY: y, origDx: r.labelDx || 0, origDy: r.labelDy || 0 };
   };
 
   const ftToPx = (v: number) => (v + padding) * PX_PER_FT;

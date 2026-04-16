@@ -123,7 +123,7 @@ export const PropertiesPanel: React.FC<Props> = ({
     );
   }
 
-  if (selection.kind === "room") {
+  if (selection.kind === "room" || selection.kind === "room_label") {
     const r = floor.rooms.find((r) => r.id === selection.id);
     if (!r) return null;
     return wrap(

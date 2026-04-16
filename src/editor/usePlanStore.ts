@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { nanoid } from "nanoid";
-import type { Floor, FloorData, Opening, PlanData, PropItem, Room, Wall } from "./types";
-import { makeInitialPlan } from "./initialPlan";
+import type { Floor, FloorData, FloorMeta, Opening, PlanData, PropItem, Room, Wall } from "./types";
+import { makeBlankFloorFrom, makeInitialPlan } from "./initialPlan";
 
-const STORAGE_KEY = "floorplan_v1";
+const STORAGE_KEY = "floorplan_v2";
 
 function loadPlan(): PlanData {
   if (typeof window === "undefined") return makeInitialPlan();
@@ -11,7 +11,7 @@ function loadPlan(): PlanData {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as PlanData;
-      if (parsed?.version === 1) return parsed;
+      if (parsed?.version === 2 && Array.isArray(parsed.floors)) return parsed;
     }
   } catch {}
   return makeInitialPlan();
@@ -19,14 +19,21 @@ function loadPlan(): PlanData {
 
 export function usePlanStore() {
   const [plan, setPlan] = useState<PlanData>(() => loadPlan());
-  const [activeFloor, setActiveFloor] = useState<Floor>("ground");
-  const [selection, setSelection] = useState<{ kind: "prop" | "wall" | "opening" | "room"; id: string } | null>(null);
+  const [activeFloor, setActiveFloor] = useState<Floor>(() => plan.floors[0]?.id || "ground");
+  const [selection, setSelection] = useState<{ kind: "prop" | "wall" | "opening" | "room" | "room_label"; id: string } | null>(null);
   const historyRef = useRef<PlanData[]>([]);
   const futureRef = useRef<PlanData[]>([]);
 
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(plan)); } catch {}
   }, [plan]);
+
+  // Ensure activeFloor is valid
+  useEffect(() => {
+    if (!plan.floors.find((f) => f.id === activeFloor)) {
+      setActiveFloor(plan.floors[0]?.id || "ground");
+    }
+  }, [plan.floors, activeFloor]);
 
   const commit = useCallback((updater: (p: PlanData) => PlanData) => {
     setPlan((prev) => {
@@ -55,10 +62,14 @@ export function usePlanStore() {
   }, []);
 
   const updateFloor = useCallback((updater: (f: FloorData) => FloorData) => {
-    commit((p) => ({ ...p, [activeFloor]: updater(p[activeFloor]) }));
+    commit((p) => ({
+      ...p,
+      floors: p.floors.map((fm) => fm.id === activeFloor ? { ...fm, data: updater(fm.data) } : fm),
+    }));
   }, [activeFloor, commit]);
 
-  const floor: FloorData = plan[activeFloor];
+  const floorMeta: FloorMeta = plan.floors.find((f) => f.id === activeFloor) || plan.floors[0];
+  const floor: FloorData = floorMeta.data;
 
   const addProp = (type: string, defaults: { w: number; h: number }) => {
     const newProp: PropItem = {
@@ -80,8 +91,11 @@ export function usePlanStore() {
         case "prop": return { ...f, props: f.props.filter((p) => p.id !== selection.id) };
         case "wall": return { ...f, walls: f.walls.filter((w) => w.id !== selection.id), openings: f.openings.filter((o) => o.wallId !== selection.id) };
         case "opening": return { ...f, openings: f.openings.filter((o) => o.id !== selection.id) };
-        case "room": return { ...f, rooms: f.rooms.filter((r) => r.id !== selection.id) };
+        case "room":
+        case "room_label":
+          return { ...f, rooms: f.rooms.filter((r) => r.id !== selection.id) };
       }
+      return f;
     });
     setSelection(null);
   };
@@ -110,16 +124,70 @@ export function usePlanStore() {
   const updateRoom = (id: string, patch: Partial<Room>) =>
     updateFloor((f) => ({ ...f, rooms: f.rooms.map((r) => (r.id === id ? { ...r, ...patch } : r)) }));
 
+  const setProjectName = (name: string) =>
+    commit((p) => ({ ...p, projectName: name }));
+
+  const renameFloor = (id: string, name: string) =>
+    commit((p) => ({ ...p, floors: p.floors.map((f) => f.id === id ? { ...f, name } : f) }));
+
+  const addFloor = () => {
+    commit((p) => {
+      const last = p.floors[p.floors.length - 1];
+      const newId = `floor_${nanoid(5)}`;
+      const newName = `Floor ${p.floors.length + 1}`;
+      const data = makeBlankFloorFrom(last.data);
+      const next = { ...p, floors: [...p.floors, { id: newId, name: newName, data }] };
+      // Switch to it
+      setTimeout(() => setActiveFloor(newId), 0);
+      return next;
+    });
+  };
+
+  const removeFloor = (id: string) => {
+    commit((p) => {
+      if (p.floors.length <= 1) return p;
+      return { ...p, floors: p.floors.filter((f) => f.id !== id) };
+    });
+  };
+
   const reset = () => {
     historyRef.current = [];
     futureRef.current = [];
     setPlan(makeInitialPlan());
     setSelection(null);
+    setActiveFloor("ground");
+  };
+
+  const newProject = () => {
+    historyRef.current = [];
+    futureRef.current = [];
+    const blank: PlanData = {
+      version: 2,
+      projectName: "Untitled Plan",
+      floors: [{
+        id: "ground",
+        name: "Ground Floor",
+        data: {
+          bounds: { x: 0, y: 0, w: 25, h: 70 },
+          walls: [
+            { id: `w_${nanoid(5)}`, x1: 0, y1: 0, x2: 25, y2: 0, thickness: 0.75 },
+            { id: `w_${nanoid(5)}`, x1: 25, y1: 0, x2: 25, y2: 70, thickness: 0.75 },
+            { id: `w_${nanoid(5)}`, x1: 0, y1: 70, x2: 25, y2: 70, thickness: 0.75 },
+            { id: `w_${nanoid(5)}`, x1: 0, y1: 0, x2: 0, y2: 70, thickness: 0.75 },
+          ],
+          openings: [], rooms: [], props: [],
+        },
+      }],
+    };
+    setPlan(blank);
+    setSelection(null);
+    setActiveFloor("ground");
   };
 
   return {
-    plan, activeFloor, setActiveFloor, floor, selection, setSelection,
+    plan, activeFloor, setActiveFloor, floor, floorMeta, selection, setSelection,
     addProp, updateProp, addWall, updateWall, addOpening, updateOpening, addRoom, updateRoom,
-    deleteSelection, undo, redo, reset,
+    deleteSelection, undo, redo, reset, newProject,
+    setProjectName, renameFloor, addFloor, removeFloor,
   };
 }

@@ -6,10 +6,11 @@ import type { FloorData, Opening, PropItem, Wall } from "./types";
 interface Props {
   floor: FloorData;
   selection: { kind: string; id: string } | null;
-  setSelection: (s: { kind: "prop" | "wall" | "opening" | "room"; id: string } | null) => void;
+  setSelection: (s: { kind: "prop" | "wall" | "opening" | "room" | "room_label"; id: string } | null) => void;
   updateProp: (id: string, patch: Partial<PropItem>) => void;
   updateWall: (id: string, patch: Partial<Wall>) => void;
   updateOpening: (id: string, patch: Partial<Opening>) => void;
+  updateRoom: (id: string, patch: Partial<import("./types").Room>) => void;
   showDimensions: boolean;
   showGrid: boolean;
 }
@@ -18,10 +19,12 @@ type DragState =
   | { kind: "prop_move"; id: string; startX: number; startY: number; origX: number; origY: number }
   | { kind: "prop_resize"; id: string; corner: "se" | "sw" | "ne" | "nw"; origW: number; origH: number; origX: number; origY: number; startX: number; startY: number }
   | { kind: "wall_endpoint"; id: string; end: 1 | 2; }
-  | { kind: "opening_slide"; id: string; wall: Wall };
+  | { kind: "opening_slide"; id: string; wall: Wall }
+  | { kind: "room_move"; id: string; startX: number; startY: number; origX: number; origY: number }
+  | { kind: "room_label_move"; id: string; startX: number; startY: number; origDx: number; origDy: number };
 
 export const FloorCanvas: React.FC<Props> = ({
-  floor, selection, setSelection, updateProp, updateWall, updateOpening, showDimensions, showGrid,
+  floor, selection, setSelection, updateProp, updateWall, updateOpening, updateRoom, showDimensions, showGrid,
 }) => {
   const padding = 8; // ft of margin around plot for dimensions
   const widthFt = floor.bounds.w + padding * 2;
@@ -75,6 +78,18 @@ export const FloorCanvas: React.FC<Props> = ({
       const dx = x - w.x1, dy = y - w.y1;
       const proj = (dx * (w.x2 - w.x1) + dy * (w.y2 - w.y1)) / (len * len);
       updateOpening(ds.id, { t: Math.max(0.05, Math.min(0.95, proj)) });
+    } else if (ds.kind === "room_move") {
+      const dx = x - ds.startX, dy = y - ds.startY;
+      updateRoom(ds.id, {
+        x: Math.round((ds.origX + dx) * 4) / 4,
+        y: Math.round((ds.origY + dy) * 4) / 4,
+      });
+    } else if (ds.kind === "room_label_move") {
+      const dx = x - ds.startX, dy = y - ds.startY;
+      updateRoom(ds.id, {
+        labelDx: Math.round((ds.origDx + dx) * 4) / 4,
+        labelDy: Math.round((ds.origDy + dy) * 4) / 4,
+      });
     }
   };
   const onPointerUp = () => { dragRef.current = null; };
@@ -101,6 +116,18 @@ export const FloorCanvas: React.FC<Props> = ({
     const w = floor.walls.find((w) => w.id === o.wallId);
     if (!w) return;
     dragRef.current = { kind: "opening_slide", id: o.id, wall: w };
+  };
+  const startRoomDrag = (r: import("./types").Room, e: React.PointerEvent) => {
+    e.stopPropagation();
+    setSelection({ kind: "room", id: r.id });
+    const { x, y } = toFt(e.clientX, e.clientY);
+    dragRef.current = { kind: "room_move", id: r.id, startX: x, startY: y, origX: r.x, origY: r.y };
+  };
+  const startRoomLabelDrag = (r: import("./types").Room, e: React.PointerEvent) => {
+    e.stopPropagation();
+    setSelection({ kind: "room_label", id: r.id });
+    const { x, y } = toFt(e.clientX, e.clientY);
+    dragRef.current = { kind: "room_label_move", id: r.id, startX: x, startY: y, origDx: r.labelDx || 0, origDy: r.labelDy || 0 };
   };
 
   const ftToPx = (v: number) => (v + padding) * PX_PER_FT;
@@ -151,37 +178,57 @@ export const FloorCanvas: React.FC<Props> = ({
 
         {/* Rooms */}
         <g>
-          {floor.rooms.map((r) => (
-            <g key={r.id} onClick={(e) => { e.stopPropagation(); setSelection({ kind: "room", id: r.id }); }}>
-              <rect
-                x={ftToPx(r.x)} y={ftToPx(r.y)}
-                width={r.w * PX_PER_FT} height={r.h * PX_PER_FT}
-                fill={r.fill === "alt" ? "hsl(var(--room-fill-alt))" : "hsl(var(--room-fill))"}
-                stroke={selection?.kind === "room" && selection.id === r.id ? "hsl(var(--selection))" : "transparent"}
-                strokeWidth={1.5}
-                className="cursor-pointer"
-              />
-              <text
-                x={ftToPx(r.x + r.w / 2)} y={ftToPx(r.y + r.h / 2)}
-                textAnchor="middle" dominantBaseline="middle"
-                fill="hsl(var(--foreground))"
-                fontSize={Math.min(14, Math.max(9, Math.min(r.w, r.h) * 1.4))}
-                fontFamily="ui-sans-serif, system-ui"
-                className="pointer-events-none font-medium"
-              >
-                {r.name}
-              </text>
-              <text
-                x={ftToPx(r.x + r.w / 2)} y={ftToPx(r.y + r.h / 2) + 14}
-                textAnchor="middle" dominantBaseline="middle"
-                fill="hsl(var(--muted-foreground))"
-                fontSize={9}
-                className="pointer-events-none"
-              >
-                {r.w.toFixed(1)}' × {r.h.toFixed(1)}'
-              </text>
-            </g>
-          ))}
+          {floor.rooms.map((r) => {
+            const isSel = selection?.kind === "room" && selection.id === r.id;
+            const isLabelSel = selection?.kind === "room_label" && selection.id === r.id;
+            const lx = ftToPx(r.x + r.w / 2 + (r.labelDx || 0));
+            const ly = ftToPx(r.y + r.h / 2 + (r.labelDy || 0));
+            const fontSize = Math.min(14, Math.max(9, Math.min(r.w, r.h) * 1.4));
+            return (
+              <g key={r.id}>
+                <rect
+                  x={ftToPx(r.x)} y={ftToPx(r.y)}
+                  width={r.w * PX_PER_FT} height={r.h * PX_PER_FT}
+                  fill={r.fill === "alt" ? "hsl(var(--room-fill-alt))" : "hsl(var(--room-fill))"}
+                  stroke={isSel ? "hsl(var(--selection))" : "transparent"}
+                  strokeWidth={1.5}
+                  className="cursor-move"
+                  onPointerDown={(e) => startRoomDrag(r, e)}
+                />
+                <g
+                  onPointerDown={(e) => startRoomLabelDrag(r, e)}
+                  className="cursor-move"
+                >
+                  {isLabelSel && (
+                    <rect
+                      x={lx - 42} y={ly - fontSize - 2}
+                      width={84} height={fontSize * 2 + 8}
+                      fill="none" stroke="hsl(var(--selection))" strokeWidth={1} strokeDasharray="3 2"
+                    />
+                  )}
+                  <text
+                    x={lx} y={ly}
+                    textAnchor="middle" dominantBaseline="middle"
+                    fill="hsl(var(--foreground))"
+                    fontSize={fontSize}
+                    fontFamily="ui-sans-serif, system-ui"
+                    className="font-medium select-none"
+                  >
+                    {r.name}
+                  </text>
+                  <text
+                    x={lx} y={ly + fontSize + 2}
+                    textAnchor="middle" dominantBaseline="middle"
+                    fill="hsl(var(--muted-foreground))"
+                    fontSize={9}
+                    className="select-none"
+                  >
+                    {r.w.toFixed(1)}' × {r.h.toFixed(1)}'
+                  </text>
+                </g>
+              </g>
+            );
+          })}
         </g>
 
         {/* Walls */}

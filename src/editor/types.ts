@@ -1,7 +1,7 @@
 // Coordinate system: feet. 1 ft = `PX_PER_FT` px on screen.
 export const PX_PER_FT = 14;
 
-export type Floor = "ground" | "first";
+export type Floor = string; // floor id
 
 export interface Wall {
   id: string;
@@ -30,6 +30,9 @@ export interface Room {
   // Bounding rect in ft used for label placement and area calc
   x: number; y: number; w: number; h: number;
   fill?: "default" | "alt";
+  // Optional offset (ft) of the label from room center
+  labelDx?: number;
+  labelDy?: number;
 }
 
 export interface PropItem {
@@ -50,8 +53,14 @@ export interface FloorData {
   props: PropItem[];
 }
 
+export interface FloorMeta {
+  id: string;
+  name: string;
+  data: FloorData;
+}
+
 export interface PlanData {
-  ground: FloorData;
-  first: FloorData;
-  version: 1;
+  version: 2;
+  projectName: string;
+  floors: FloorMeta[];
 }

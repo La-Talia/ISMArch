@@ -410,6 +410,76 @@ export const PROP_CATALOG: Record<string, CatalogEntry> = {
     label: "Study Table", category: "Office", defaultW: 4, defaultH: 2,
     render: (w, h) => g(rect(0, 0, w, h), line(0, h - 0.05, w, h - 0.05)),
   },
+
+  // ----- Extras -----
+  vent: {
+    label: "Vent / Shaft", category: "Architecture", defaultW: 2, defaultH: 2,
+    render: (w, h) => g(rect(0, 0, w, h, { strokeDasharray: "0.2 0.15" }), line(0, 0, w, h), line(w, 0, 0, h)),
+  },
+  shaft: {
+    label: "Plumbing Shaft", category: "Architecture", defaultW: 1.5, defaultH: 1.5,
+    render: (w, h) => g(rect(0, 0, w, h, { strokeDasharray: "0.2 0.15" }), text(w / 2, h / 2, "S", 0.6)),
+  },
+  door_swing: {
+    label: "Door Marker", category: "Architecture", defaultW: 3, defaultH: 3,
+    render: (w, h) => g(line(0, 0, w, 0), path(`M 0 0 A ${w} ${h} 0 0 1 ${w} ${h}`, { fill: "none" })),
+  },
+  column: {
+    label: "Column", category: "Architecture", defaultW: 1, defaultH: 1,
+    render: (w, h) => g(rect(0, 0, w, h, { fill: "hsl(var(--prop-stroke))" })),
+  },
+  ramp: {
+    label: "Ramp", category: "Architecture", defaultW: 4, defaultH: 8,
+    render: (w, h) => g(rect(0, 0, w, h), ...Array.from({ length: 6 }).map((_, i) => line(0, (h * (i + 1)) / 7, w, (h * (i + 1)) / 7))),
+  },
+  treadmill: {
+    label: "Treadmill", category: "Misc", defaultW: 3, defaultH: 6,
+    render: (w, h) => g(rect(0, 0, w, h, { rx: 0.2 }), rect(0.2, 0.2, w - 0.4, h * 0.5)),
+  },
+  pool_table: {
+    label: "Pool Table", category: "Misc", defaultW: 9, defaultH: 5,
+    render: (w, h) => g(rect(0, 0, w, h, { rx: 0.2, fill: "hsl(var(--prop-stroke))" }), rect(0.4, 0.4, w - 0.8, h - 0.8, { rx: 0.1 })),
+  },
+  crib: {
+    label: "Crib", category: "Bedroom", defaultW: 3, defaultH: 5,
+    render: (w, h) => g(rect(0, 0, w, h, { rx: 0.15 }), rect(0.3, 0.5, w - 0.6, h - 1, { rx: 0.1 })),
+  },
+  bunk_bed: {
+    label: "Bunk Bed", category: "Bedroom", defaultW: 3.5, defaultH: 6.5,
+    render: (w, h) => g(rect(0, 0, w, h), rect(0.2, 0.2, w - 0.4, 1), rect(0.2, h - 1.2, w - 0.4, 1)),
+  },
+  tv_stand_lg: {
+    label: "TV Stand (Large)", category: "Living", defaultW: 7, defaultH: 1.6,
+    render: (w, h) => g(rect(0, 0, w, h), line(w / 3, 0, w / 3, h), line((w / 3) * 2, 0, (w / 3) * 2, h)),
+  },
+  recliner: {
+    label: "Recliner", category: "Living", defaultW: 3, defaultH: 3.5,
+    render: (w, h) => g(rect(0, 0, w, h, { rx: 0.3 }), rect(0.3, 0.5, w - 0.6, h - 0.8, { rx: 0.2 })),
+  },
+  side_table: {
+    label: "Side Table", category: "Living", defaultW: 1.6, defaultH: 1.6,
+    render: (w, h) => g(rect(0, 0, w, h, { rx: 0.1 })),
+  },
+  bbq_grill: {
+    label: "BBQ Grill", category: "Outdoor", defaultW: 3.5, defaultH: 2,
+    render: (w, h) => g(rect(0, 0, w, h, { rx: 0.2 }), ...Array.from({ length: 4 }).map((_, i) => line(0.3 + i * ((w - 0.6) / 3), 0.3, 0.3 + i * ((w - 0.6) / 3), h - 0.3))),
+  },
+  outdoor_lounge: {
+    label: "Lounge Chair", category: "Outdoor", defaultW: 2.5, defaultH: 5,
+    render: (w, h) => g(rect(0, 0, w, h, { rx: 0.3 })),
+  },
+  fountain: {
+    label: "Fountain", category: "Outdoor", defaultW: 4, defaultH: 4,
+    render: (w, h) => g(circle(w / 2, h / 2, Math.min(w, h) / 2 - 0.1), circle(w / 2, h / 2, Math.min(w, h) / 4), circle(w / 2, h / 2, 0.2, { fill: "hsl(var(--prop-stroke))" })),
+  },
+  parking_line: {
+    label: "Parking Slot", category: "Outdoor", defaultW: 8, defaultH: 16,
+    render: (w, h) => g(rect(0, 0, w, h, { fill: "none", strokeDasharray: "0.4 0.3" })),
+  },
+  altar: {
+    label: "Altar", category: "Misc", defaultW: 3, defaultH: 2,
+    render: (w, h) => g(rect(0, 0, w, h), path(`M ${w * 0.2} 0 L ${w / 2} ${-h * 0.5} L ${w * 0.8} 0 Z`, { fill: "none" })),
+  },
 };
 
 export const PROP_CATEGORIES = Array.from(

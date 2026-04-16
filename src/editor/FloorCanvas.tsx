@@ -19,6 +19,7 @@ type DragState =
   | { kind: "prop_move"; id: string; startX: number; startY: number; origX: number; origY: number }
   | { kind: "prop_resize"; id: string; corner: "se" | "sw" | "ne" | "nw"; origW: number; origH: number; origX: number; origY: number; startX: number; startY: number }
   | { kind: "wall_endpoint"; id: string; end: 1 | 2; }
+  | { kind: "wall_move"; id: string; horizontal: boolean; startX: number; startY: number; origX1: number; origY1: number; origX2: number; origY2: number }
   | { kind: "opening_slide"; id: string; wall: Wall }
   | { kind: "room_move"; id: string; startX: number; startY: number; origX: number; origY: number }
   | { kind: "room_label_move"; id: string; startX: number; startY: number; origDx: number; origDy: number };
@@ -72,6 +73,17 @@ export const FloorCanvas: React.FC<Props> = ({
         if (horizontal) updateWall(w.id, { x2: snap(x) });
         else updateWall(w.id, { y2: snap(y) });
       }
+    } else if (ds.kind === "wall_move") {
+      const snap = (v: number) => Math.round(v * 4) / 4;
+      if (ds.horizontal) {
+        const dy = y - ds.startY;
+        const ny = snap(ds.origY1 + dy);
+        updateWall(ds.id, { y1: ny, y2: ny });
+      } else {
+        const dx = x - ds.startX;
+        const nx = snap(ds.origX1 + dx);
+        updateWall(ds.id, { x1: nx, x2: nx });
+      }
     } else if (ds.kind === "opening_slide") {
       const w = ds.wall;
       const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
@@ -109,6 +121,15 @@ export const FloorCanvas: React.FC<Props> = ({
     e.stopPropagation();
     setSelection({ kind: "wall", id: w.id });
     dragRef.current = { kind: "wall_endpoint", id: w.id, end };
+  };
+  const startWallMove = (w: Wall, e: React.PointerEvent) => {
+    e.stopPropagation();
+    setSelection({ kind: "wall", id: w.id });
+    const { x, y } = toFt(e.clientX, e.clientY);
+    dragRef.current = {
+      kind: "wall_move", id: w.id, horizontal: w.y1 === w.y2,
+      startX: x, startY: y, origX1: w.x1, origY1: w.y1, origX2: w.x2, origY2: w.y2,
+    };
   };
   const startOpeningDrag = (o: Opening, e: React.PointerEvent) => {
     e.stopPropagation();

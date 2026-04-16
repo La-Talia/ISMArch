@@ -206,5 +206,43 @@ function firstFloor() {
 }
 
 export function makeInitialPlan(): PlanData {
-  return { version: 1, ground: groundFloor(), first: firstFloor() };
+  return {
+    version: 2,
+    projectName: "25 × 70 ft East-Facing Plan",
+    floors: [
+      { id: "ground", name: "Ground Floor", data: groundFloor() },
+      { id: "first", name: "First Floor", data: firstFloor() },
+    ],
+  };
+}
+
+// Used when adding a new floor: keep exterior walls, stair shaft + vents, clear the rest.
+export function makeBlankFloorFrom(prev: import("./types").FloorData): import("./types").FloorData {
+  const isExterior = (w: import("./types").Wall) => {
+    const onLeft = w.x1 === prev.bounds.x && w.x2 === prev.bounds.x;
+    const onRight = w.x1 === prev.bounds.x + prev.bounds.w && w.x2 === prev.bounds.x + prev.bounds.w;
+    const onTop = w.y1 === prev.bounds.y && w.y2 === prev.bounds.y;
+    const onBottom = w.y1 === prev.bounds.y + prev.bounds.h && w.y2 === prev.bounds.y + prev.bounds.h;
+    return onLeft || onRight || onTop || onBottom;
+  };
+  const walls = prev.walls.filter(isExterior);
+  const props = prev.props.filter((p) =>
+    p.type === "stairs" || p.type === "stairs_down" || p.type === "vent" || p.type === "shaft",
+  ).map((p) => ({ ...p, type: p.type === "stairs" ? "stairs_down" : p.type }));
+  const rooms = prev.rooms.filter((r) => /stair|shaft|vent/i.test(r.name));
+  return { bounds: { ...prev.bounds }, walls, openings: [], rooms, props };
+}
+
+export function makeEmptyFloor(boundsW = 25, boundsD = 70): import("./types").FloorData {
+  const T = 0.75;
+  return {
+    bounds: { x: 0, y: 0, w: boundsW, h: boundsD },
+    walls: [
+      { id: id("w"), x1: 0, y1: 0, x2: boundsW, y2: 0, thickness: T },
+      { id: id("w"), x1: boundsW, y1: 0, x2: boundsW, y2: boundsD, thickness: T },
+      { id: id("w"), x1: 0, y1: boundsD, x2: boundsW, y2: boundsD, thickness: T },
+      { id: id("w"), x1: 0, y1: 0, x2: 0, y2: boundsD, thickness: T },
+    ],
+    openings: [], rooms: [], props: [],
+  };
 }

@@ -96,7 +96,7 @@ const Index = () => {
               {store.plan.projectName}
             </h1>
           )}
-          <p className="text-xs text-muted-foreground">Drag rooms, props, walls. Click room name to drag label. Auto-saved locally.</p>
+          <p className="text-xs text-muted-foreground">Drag walls/rooms/props. Click a dimension to type exact length. Auto-saved locally.</p>
         </div>
         <div className="flex items-center gap-1 shrink-0">
           <Button variant="outline" size="sm" onClick={() => { if (confirm("Start a new empty project? Current edits will be cleared.")) store.newProject(); }} title="New Project">

@@ -6,10 +6,11 @@ import type { FloorData, Opening, PropItem, Wall } from "./types";
 interface Props {
   floor: FloorData;
   selection: { kind: string; id: string } | null;
-  setSelection: (s: { kind: "prop" | "wall" | "opening" | "room"; id: string } | null) => void;
+  setSelection: (s: { kind: "prop" | "wall" | "opening" | "room" | "room_label"; id: string } | null) => void;
   updateProp: (id: string, patch: Partial<PropItem>) => void;
   updateWall: (id: string, patch: Partial<Wall>) => void;
   updateOpening: (id: string, patch: Partial<Opening>) => void;
+  updateRoom: (id: string, patch: Partial<import("./types").Room>) => void;
   showDimensions: boolean;
   showGrid: boolean;
 }
@@ -18,10 +19,12 @@ type DragState =
   | { kind: "prop_move"; id: string; startX: number; startY: number; origX: number; origY: number }
   | { kind: "prop_resize"; id: string; corner: "se" | "sw" | "ne" | "nw"; origW: number; origH: number; origX: number; origY: number; startX: number; startY: number }
   | { kind: "wall_endpoint"; id: string; end: 1 | 2; }
-  | { kind: "opening_slide"; id: string; wall: Wall };
+  | { kind: "opening_slide"; id: string; wall: Wall }
+  | { kind: "room_move"; id: string; startX: number; startY: number; origX: number; origY: number }
+  | { kind: "room_label_move"; id: string; startX: number; startY: number; origDx: number; origDy: number };
 
 export const FloorCanvas: React.FC<Props> = ({
-  floor, selection, setSelection, updateProp, updateWall, updateOpening, showDimensions, showGrid,
+  floor, selection, setSelection, updateProp, updateWall, updateOpening, updateRoom, showDimensions, showGrid,
 }) => {
   const padding = 8; // ft of margin around plot for dimensions
   const widthFt = floor.bounds.w + padding * 2;

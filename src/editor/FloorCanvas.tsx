@@ -193,13 +193,22 @@ export const FloorCanvas: React.FC<Props> = ({
           </g>
         )}
 
-        {/* Plot bounds */}
-        <rect
-          x={ftToPx(floor.bounds.x)} y={ftToPx(floor.bounds.y)}
-          width={floor.bounds.w * PX_PER_FT} height={floor.bounds.h * PX_PER_FT}
-          fill="hsl(var(--room-fill))" stroke="hsl(var(--wall))" strokeWidth={3}
-        />
-
+        {/* Plot boundary (custom polygon/freehand or default rect) */}
+        {floor.plot && floor.plot.points.length >= 3 ? (
+          <path
+            d={floor.plot.points.map((p, i) => `${i === 0 ? "M" : "L"} ${ftToPx(p.x)} ${ftToPx(p.y)}`).join(" ") + " Z"}
+            fill="hsl(var(--room-fill))"
+            stroke="hsl(var(--wall))"
+            strokeWidth={3}
+            strokeLinejoin="round"
+          />
+        ) : (
+          <rect
+            x={ftToPx(floor.bounds.x)} y={ftToPx(floor.bounds.y)}
+            width={floor.bounds.w * PX_PER_FT} height={floor.bounds.h * PX_PER_FT}
+            fill="hsl(var(--room-fill))" stroke="hsl(var(--wall))" strokeWidth={3}
+          />
+        )}
         {/* Rooms */}
         <g>
           {floor.rooms.map((r) => {

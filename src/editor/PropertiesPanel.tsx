@@ -81,6 +81,9 @@ export const PropertiesPanel: React.FC<Props> = ({
     const w = floor.walls.find((w) => w.id === selection.id);
     if (!w) return null;
     const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
+    const horizontal = w.y1 === w.y2;
+    const vertical = w.x1 === w.x2;
+    const isCurved = w.cx !== undefined && w.cy !== undefined;
     return wrap(
       <>
         <Field label={`Length: ${len.toFixed(2)} ft`}><div /></Field>
@@ -92,6 +95,47 @@ export const PropertiesPanel: React.FC<Props> = ({
         </div>
         <Field label="Thickness (ft)">
           <NumIn v={w.thickness} onChange={(v) => updateWall(w.id, { thickness: Math.max(0.25, v) })} />
+        </Field>
+        <Field label="Orientation">
+          <div className="grid grid-cols-3 gap-1">
+            <Button size="sm" variant={horizontal ? "default" : "outline"}
+              onClick={() => updateWall(w.id, { y2: w.y1 })}>Horizontal</Button>
+            <Button size="sm" variant={vertical ? "default" : "outline"}
+              onClick={() => updateWall(w.id, { x2: w.x1 })}>Vertical</Button>
+            <Button size="sm" variant="outline"
+              onClick={() => {
+                const cx = (w.x1 + w.x2) / 2, cy = (w.y1 + w.y2) / 2;
+                // rotate 90° around midpoint
+                const dx = w.x2 - cx, dy = w.y2 - cy;
+                updateWall(w.id, { x1: cx + dy, y1: cy - dx, x2: cx - dy, y2: cy + dx });
+              }}>Rotate 90°</Button>
+          </div>
+        </Field>
+        <Field label="Shape">
+          {isCurved ? (
+            <div className="grid grid-cols-2 gap-1">
+              <Button size="sm" variant="outline"
+                onClick={() => updateWall(w.id, { cx: undefined, cy: undefined })}>
+                Make straight
+              </Button>
+              <Button size="sm" variant="outline"
+                onClick={() => {
+                  const mx = (w.x1 + w.x2) / 2, my = (w.y1 + w.y2) / 2;
+                  updateWall(w.id, { cx: mx, cy: my });
+                }}>Reset curve</Button>
+            </div>
+          ) : (
+            <Button size="sm" variant="outline"
+              onClick={() => {
+                // Place control point perpendicular to midpoint by ~1/4 of length
+                const mx = (w.x1 + w.x2) / 2, my = (w.y1 + w.y2) / 2;
+                const dx = w.x2 - w.x1, dy = w.y2 - w.y1;
+                const L = Math.hypot(dx, dy) || 1;
+                const offset = L / 4;
+                const px = -dy / L * offset, py = dx / L * offset;
+                updateWall(w.id, { cx: mx + px, cy: my + py });
+              }}>Make curved</Button>
+          )}
         </Field>
       </>,
       "Wall",

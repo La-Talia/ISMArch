@@ -19,6 +19,7 @@ type DragState =
   | { kind: "prop_move"; id: string; startX: number; startY: number; origX: number; origY: number }
   | { kind: "prop_resize"; id: string; corner: "se" | "sw" | "ne" | "nw"; origW: number; origH: number; origX: number; origY: number; startX: number; startY: number }
   | { kind: "wall_endpoint"; id: string; end: 1 | 2; }
+  | { kind: "wall_curve"; id: string }
   | { kind: "wall_move"; id: string; horizontal: boolean; startX: number; startY: number; origX1: number; origY1: number; origX2: number; origY2: number }
   | { kind: "opening_slide"; id: string; wall: Wall }
   | { kind: "room_move"; id: string; startX: number; startY: number; origX: number; origY: number }
@@ -84,6 +85,8 @@ export const FloorCanvas: React.FC<Props> = ({
         const nx = snap(ds.origX1 + dx);
         updateWall(ds.id, { x1: nx, x2: nx });
       }
+    } else if (ds.kind === "wall_curve") {
+      updateWall(ds.id, { cx: Math.round(x * 4) / 4, cy: Math.round(y * 4) / 4 });
     } else if (ds.kind === "opening_slide") {
       const w = ds.wall;
       const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
@@ -190,13 +193,22 @@ export const FloorCanvas: React.FC<Props> = ({
           </g>
         )}
 
-        {/* Plot bounds */}
-        <rect
-          x={ftToPx(floor.bounds.x)} y={ftToPx(floor.bounds.y)}
-          width={floor.bounds.w * PX_PER_FT} height={floor.bounds.h * PX_PER_FT}
-          fill="hsl(var(--room-fill))" stroke="hsl(var(--wall))" strokeWidth={3}
-        />
-
+        {/* Plot boundary (custom polygon/freehand or default rect) */}
+        {floor.plot && floor.plot.points.length >= 3 ? (
+          <path
+            d={floor.plot.points.map((p, i) => `${i === 0 ? "M" : "L"} ${ftToPx(p.x)} ${ftToPx(p.y)}`).join(" ") + " Z"}
+            fill="hsl(var(--room-fill))"
+            stroke="hsl(var(--wall))"
+            strokeWidth={3}
+            strokeLinejoin="round"
+          />
+        ) : (
+          <rect
+            x={ftToPx(floor.bounds.x)} y={ftToPx(floor.bounds.y)}
+            width={floor.bounds.w * PX_PER_FT} height={floor.bounds.h * PX_PER_FT}
+            fill="hsl(var(--room-fill))" stroke="hsl(var(--wall))" strokeWidth={3}
+          />
+        )}
         {/* Rooms */}
         <g>
           {floor.rooms.map((r) => {
@@ -256,26 +268,50 @@ export const FloorCanvas: React.FC<Props> = ({
         <g>
           {floor.walls.map((w) => {
             const horizontal = w.y1 === w.y2;
+            const vertical = w.x1 === w.x2;
+            const axisAligned = (horizontal || vertical) && w.cx === undefined;
             const isSel = selection?.kind === "wall" && selection.id === w.id;
             const t = w.thickness * PX_PER_FT;
-            const x = horizontal ? ftToPx(Math.min(w.x1, w.x2)) : ftToPx(w.x1) - t / 2;
-            const y = horizontal ? ftToPx(w.y1) - t / 2 : ftToPx(Math.min(w.y1, w.y2));
-            const ww = horizontal ? Math.abs(w.x2 - w.x1) * PX_PER_FT : t;
-            const hh = horizontal ? t : Math.abs(w.y2 - w.y1) * PX_PER_FT;
             const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);
             const midX = ftToPx((w.x1 + w.x2) / 2);
             const midY = ftToPx((w.y1 + w.y2) / 2);
+            const hasCurve = w.cx !== undefined && w.cy !== undefined;
+            // For non-axis-aligned or curved walls render a stroked line/path
+            const x1Px = ftToPx(w.x1), y1Px = ftToPx(w.y1);
+            const x2Px = ftToPx(w.x2), y2Px = ftToPx(w.y2);
+            const cxPx = hasCurve ? ftToPx(w.cx as number) : (x1Px + x2Px) / 2;
+            const cyPx = hasCurve ? ftToPx(w.cy as number) : (y1Px + y2Px) / 2;
+            const pathD = hasCurve
+              ? `M ${x1Px} ${y1Px} Q ${cxPx} ${cyPx} ${x2Px} ${y2Px}`
+              : `M ${x1Px} ${y1Px} L ${x2Px} ${y2Px}`;
+
             return (
               <g key={w.id}>
-                <rect
-                  x={x} y={y} width={ww} height={hh}
-                  fill="hsl(var(--wall-fill))"
-                  stroke={isSel ? "hsl(var(--selection))" : "none"}
-                  strokeWidth={1.5}
-                  onClick={(e) => { e.stopPropagation(); setSelection({ kind: "wall", id: w.id }); }}
-                  onPointerDown={(e) => startWallMove(w, e)}
-                  className={horizontal ? "cursor-ns-resize hover:opacity-80" : "cursor-ew-resize hover:opacity-80"}
-                />
+                {axisAligned ? (
+                  <rect
+                    x={horizontal ? ftToPx(Math.min(w.x1, w.x2)) : ftToPx(w.x1) - t / 2}
+                    y={horizontal ? ftToPx(w.y1) - t / 2 : ftToPx(Math.min(w.y1, w.y2))}
+                    width={horizontal ? Math.abs(w.x2 - w.x1) * PX_PER_FT : t}
+                    height={horizontal ? t : Math.abs(w.y2 - w.y1) * PX_PER_FT}
+                    fill="hsl(var(--wall-fill))"
+                    stroke={isSel ? "hsl(var(--selection))" : "none"}
+                    strokeWidth={1.5}
+                    onClick={(e) => { e.stopPropagation(); setSelection({ kind: "wall", id: w.id }); }}
+                    onPointerDown={(e) => startWallMove(w, e)}
+                    className={horizontal ? "cursor-ns-resize hover:opacity-80" : "cursor-ew-resize hover:opacity-80"}
+                  />
+                ) : (
+                  <path
+                    d={pathD}
+                    fill="none"
+                    stroke="hsl(var(--wall-fill))"
+                    strokeWidth={t}
+                    strokeLinecap="butt"
+                    onClick={(e) => { e.stopPropagation(); setSelection({ kind: "wall", id: w.id }); }}
+                    onPointerDown={(e) => startWallMove(w, e)}
+                    className="cursor-move hover:opacity-80"
+                  />
+                )}
                 {isSel && (
                   <>
                     {/* Live length badge */}
@@ -290,14 +326,20 @@ export const FloorCanvas: React.FC<Props> = ({
                         {len.toFixed(2)}'
                       </text>
                     </g>
-                    <circle cx={ftToPx(w.x1)} cy={ftToPx(w.y1)} r={6}
+                    <circle cx={x1Px} cy={y1Px} r={6}
                       fill="hsl(var(--selection))"
                       onPointerDown={(e) => startWallEndpointDrag(w, 1, e)}
                       className="cursor-move" />
-                    <circle cx={ftToPx(w.x2)} cy={ftToPx(w.y2)} r={6}
+                    <circle cx={x2Px} cy={y2Px} r={6}
                       fill="hsl(var(--selection))"
                       onPointerDown={(e) => startWallEndpointDrag(w, 2, e)}
                       className="cursor-move" />
+                    {hasCurve && (
+                      <circle cx={cxPx} cy={cyPx} r={5}
+                        fill="hsl(var(--background))" stroke="hsl(var(--selection))" strokeWidth={2}
+                        onPointerDown={(e) => { e.stopPropagation(); dragRef.current = { kind: "wall_curve", id: w.id }; }}
+                        className="cursor-move" />
+                    )}
                   </>
                 )}
               </g>

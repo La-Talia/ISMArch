@@ -85,6 +85,8 @@ export const FloorCanvas: React.FC<Props> = ({
         const nx = snap(ds.origX1 + dx);
         updateWall(ds.id, { x1: nx, x2: nx });
       }
+    } else if (ds.kind === "wall_curve") {
+      updateWall(ds.id, { cx: Math.round(x * 4) / 4, cy: Math.round(y * 4) / 4 });
     } else if (ds.kind === "opening_slide") {
       const w = ds.wall;
       const len = Math.hypot(w.x2 - w.x1, w.y2 - w.y1);

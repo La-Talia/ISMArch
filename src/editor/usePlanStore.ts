@@ -171,44 +171,10 @@ export function usePlanStore(projectId: string | null, onPlanChange?: (id: strin
     });
   };
 
-  const reset = () => {
-    historyRef.current = [];
-    futureRef.current = [];
-    setPlan(makeInitialPlan());
-    setSelection(null);
-    setActiveFloor("ground");
-  };
-
-  const newProject = () => {
-    historyRef.current = [];
-    futureRef.current = [];
-    const blank: PlanData = {
-      version: 2,
-      projectName: "Untitled Plan",
-      floors: [{
-        id: "ground",
-        name: "Ground Floor",
-        data: {
-          bounds: { x: 0, y: 0, w: 25, h: 70 },
-          walls: [
-            { id: `w_${nanoid(5)}`, x1: 0, y1: 0, x2: 25, y2: 0, thickness: 0.75 },
-            { id: `w_${nanoid(5)}`, x1: 25, y1: 0, x2: 25, y2: 70, thickness: 0.75 },
-            { id: `w_${nanoid(5)}`, x1: 0, y1: 70, x2: 25, y2: 70, thickness: 0.75 },
-            { id: `w_${nanoid(5)}`, x1: 0, y1: 0, x2: 0, y2: 70, thickness: 0.75 },
-          ],
-          openings: [], rooms: [], props: [],
-        },
-      }],
-    };
-    setPlan(blank);
-    setSelection(null);
-    setActiveFloor("ground");
-  };
-
   return {
     plan, activeFloor, setActiveFloor, floor, floorMeta, selection, setSelection,
     addProp, updateProp, addWall, updateWall, addOpening, updateOpening, addRoom, updateRoom,
-    deleteSelection, undo, redo, reset, newProject,
+    deleteSelection, undo, redo, replacePlan,
     setProjectName, renameFloor, addFloor, removeFloor,
   };
 }

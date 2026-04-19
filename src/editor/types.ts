@@ -5,9 +5,12 @@ export type Floor = string; // floor id
 
 export interface Wall {
   id: string;
-  // Axis-aligned for simplicity (the most common case for these plans).
-  x1: number; y1: number; x2: number; y2: number; // in feet
+  // Endpoints in feet. Walls can be at any angle.
+  x1: number; y1: number; x2: number; y2: number;
   thickness: number; // in feet (e.g., 0.75 for 9")
+  // Optional quadratic-bezier control point for curved walls (in feet).
+  cx?: number;
+  cy?: number;
 }
 
 export type OpeningKind = "door" | "window";
@@ -44,9 +47,18 @@ export interface PropItem {
   label?: string;
 }
 
+export interface PlotShape {
+  // Closed boundary points in feet (polygon). For freehand mode this can be a dense polyline.
+  points: { x: number; y: number }[];
+  // 'polygon' = straight segments; 'freehand' = treated as a smoothed path.
+  kind: "polygon" | "freehand";
+}
+
 export interface FloorData {
-  // Footprint bounds (used for dimension chains and exterior wall auto-render)
+  // Footprint bounds (used for dimension chains and as the outer canvas extents)
   bounds: { x: number; y: number; w: number; h: number };
+  // Optional custom plot boundary (overrides the default rect for the working area)
+  plot?: PlotShape;
   walls: Wall[];
   openings: Opening[];
   rooms: Room[];

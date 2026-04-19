@@ -99,18 +99,18 @@ export const PlotSketcher: React.FC<Props> = ({ open, onClose, onConfirm, defaul
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
           <DialogTitle>Sketch your plot</DialogTitle>
           <DialogDescription>
-            Draw the boundary of your land. You can choose any shape — polygon, freehand or a preset.
+            Draw the boundary of your land. Polygon, freehand or a preset.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3">
+        <div className="flex-1 overflow-y-auto px-6 py-2 space-y-3">
           <div>
             <Label htmlFor="plot-name" className="text-xs">Project name</Label>
-            <Input id="plot-name" value={name} onChange={(e) => setName(e.target.value)} className="mt-1" />
+            <Input id="plot-name" value={name} onChange={(e) => setName(e.target.value)} className="mt-1 h-9" />
           </div>
 
           <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
@@ -120,20 +120,20 @@ export const PlotSketcher: React.FC<Props> = ({ open, onClose, onConfirm, defaul
               <TabsTrigger value="preset"><Spline className="mr-1 h-3 w-3" />Preset</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="polygon" className="space-y-2">
+            <TabsContent value="polygon" className="space-y-2 mt-2">
               <div className="text-xs text-muted-foreground">
-                Click to add corners. Click <b>Close polygon</b> when done. Snaps to ¼ ft.
+                Click to add corners. Snaps to ¼ ft.
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setPolyPts((p) => p.slice(0, -1))} disabled={!polyPts.length}>
-                  <Undo2 className="mr-1 h-3 w-3" />Undo point
+                  <Undo2 className="mr-1 h-3 w-3" />Undo
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => setPolyPts([])} disabled={!polyPts.length}>Clear</Button>
                 <span className="ml-auto text-xs text-muted-foreground self-center">{polyPts.length} pts</span>
               </div>
             </TabsContent>
 
-            <TabsContent value="freehand" className="space-y-2">
+            <TabsContent value="freehand" className="space-y-2 mt-2">
               <div className="text-xs text-muted-foreground">
                 Press and drag to draw the outline. Release to close.
               </div>
@@ -143,7 +143,7 @@ export const PlotSketcher: React.FC<Props> = ({ open, onClose, onConfirm, defaul
               </div>
             </TabsContent>
 
-            <TabsContent value="preset" className="space-y-2">
+            <TabsContent value="preset" className="space-y-2 mt-2">
               <div className="grid grid-cols-3 gap-2">
                 {(["rect","L","T"] as const).map((p) => (
                   <Button key={p} size="sm" variant={preset === p ? "default" : "outline"} onClick={() => setPreset(p)}>
@@ -152,19 +152,19 @@ export const PlotSketcher: React.FC<Props> = ({ open, onClose, onConfirm, defaul
                 ))}
               </div>
               <div className="grid grid-cols-3 gap-2">
-                <div><Label className="text-xs">Width (ft)</Label><Input type="number" value={pw} onChange={(e) => setPw(Math.max(5, Number(e.target.value) || 0))} /></div>
-                <div><Label className="text-xs">Depth (ft)</Label><Input type="number" value={ph} onChange={(e) => setPh(Math.max(5, Number(e.target.value) || 0))} /></div>
-                {preset !== "rect" && <div><Label className="text-xs">Notch (ft)</Label><Input type="number" value={notch} onChange={(e) => setNotch(Math.max(1, Number(e.target.value) || 0))} /></div>}
+                <div><Label className="text-xs">Width (ft)</Label><Input type="number" value={pw} onChange={(e) => setPw(Math.max(5, Number(e.target.value) || 0))} className="h-9" /></div>
+                <div><Label className="text-xs">Depth (ft)</Label><Input type="number" value={ph} onChange={(e) => setPh(Math.max(5, Number(e.target.value) || 0))} className="h-9" /></div>
+                {preset !== "rect" && <div><Label className="text-xs">Notch (ft)</Label><Input type="number" value={notch} onChange={(e) => setNotch(Math.max(1, Number(e.target.value) || 0))} className="h-9" /></div>}
               </div>
             </TabsContent>
           </Tabs>
 
-          <div className="rounded-md border bg-[hsl(var(--blueprint-bg))]">
+          <div className="rounded-md border bg-[hsl(var(--blueprint-bg))] w-full">
             <svg
               ref={svgRef}
-              width={CANVAS}
-              height={CANVAS}
-              className="block touch-none mx-auto cursor-crosshair"
+              viewBox={`0 0 ${CANVAS} ${CANVAS}`}
+              preserveAspectRatio="xMidYMid meet"
+              className="block touch-none cursor-crosshair w-full h-auto max-h-[40vh] mx-auto"
               onPointerDown={(e) => {
                 const p = toFt(e.clientX, e.clientY);
                 if (tab === "polygon") {
@@ -187,7 +187,6 @@ export const PlotSketcher: React.FC<Props> = ({ open, onClose, onConfirm, defaul
               }}
               onPointerUp={() => { if (tab === "freehand") setDrawing(false); }}
             >
-              {/* grid */}
               <g stroke="hsl(var(--blueprint-grid))" strokeWidth={0.4}>
                 {Array.from({ length: Math.floor(CANVAS / SCALE) + 1 }).map((_, i) => (
                   <React.Fragment key={i}>
@@ -213,7 +212,7 @@ export const PlotSketcher: React.FC<Props> = ({ open, onClose, onConfirm, defaul
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="px-6 py-4 border-t shrink-0">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={handleConfirm}>Create project</Button>
         </DialogFooter>

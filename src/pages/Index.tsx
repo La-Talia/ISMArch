@@ -23,6 +23,7 @@ import { ProjectSidebar } from "@/editor/ProjectSidebar";
 import { PlotSketcher } from "@/editor/PlotSketcher";
 import { exportProject, pickArchraxFile } from "@/editor/importExport";
 import { exportDXF } from "@/editor/dxfExport";
+import { chainWallsToPolygon, polygonArea } from "@/editor/geom";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -220,6 +221,12 @@ const Index = () => {
           <div className="mx-2 h-6 w-px bg-border" />
           <Toggle pressed={showDim} onPressedChange={setShowDim} size="sm" title="Toggle dimensions"><Ruler className="h-4 w-4" /></Toggle>
           <Toggle pressed={showGrid} onPressedChange={setShowGrid} size="sm" title="Toggle grid"><Grid3x3 className="h-4 w-4" /></Toggle>
+          <Toggle pressed={showPropLibrary} onPressedChange={setShowPropLibrary} size="sm" title="Toggle furniture panel" disabled={!projects.activeId}>
+            {showPropLibrary ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
+          </Toggle>
+          <Toggle pressed={showPropsPanel} onPressedChange={setShowPropsPanel} size="sm" title="Toggle properties panel" disabled={!projects.activeId}>
+            {showPropsPanel ? <PanelRightClose className="h-4 w-4" /> : <PanelRight className="h-4 w-4" />}
+          </Toggle>
           <div className="mx-2 h-6 w-px bg-border" />
           <Button variant="outline" size="sm" onClick={() => projects.activeId && exportProject(store.plan)} disabled={!projects.activeId} title="Export .archrax">
             <FileDown className="mr-1 h-4 w-4" />.archrax
@@ -229,6 +236,17 @@ const Index = () => {
           </Button>
           <Button variant="outline" size="sm" onClick={exportPNG} disabled={!projects.activeId}><Download className="mr-1 h-4 w-4" />PNG</Button>
           <Button variant="outline" size="sm" onClick={exportPDF} disabled={!projects.activeId}><Download className="mr-1 h-4 w-4" />PDF</Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={!projects.activeId} title="Export DXF (CAD)">
+                <FileCode2 className="mr-1 h-4 w-4" />DXF
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExportDXF(true)}>With furniture</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExportDXF(false)}>Without furniture</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 

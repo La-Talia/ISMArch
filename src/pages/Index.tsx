@@ -34,7 +34,54 @@ const Index = () => {
   const [editingFloor, setEditingFloor] = React.useState<string | null>(null);
   const [sketchOpen, setSketchOpen] = React.useState(false);
   const [showSidebar, setShowSidebar] = React.useState(true);
+  const [showPropLibrary, setShowPropLibrary] = React.useState(true);
+  const [showPropsPanel, setShowPropsPanel] = React.useState(true);
+  const [zoom, setZoom] = React.useState(1);
+  const [cursor, setCursor] = React.useState<{ x: number; y: number } | null>(null);
+  const [mode, setMode] = React.useState<"select" | "dimension">("select");
+  const [snap, setSnap] = React.useState(true);
+  const [selectedWallIds, setSelectedWallIds] = React.useState<string[]>([]);
+  const [areaPolygon, setAreaPolygon] = React.useState<{ x: number; y: number }[] | null>(null);
+  const [areaValue, setAreaValue] = React.useState<number | null>(null);
   const canvasWrap = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => { setSelectedWallIds([]); setAreaPolygon(null); setAreaValue(null); }, [projects.activeId, store.activeFloor]);
+
+  const toggleWallInSelection = React.useCallback((id: string) => {
+    setSelectedWallIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  }, []);
+
+  const computeArea = () => {
+    if (selectedWallIds.length < 3) {
+      toast.error("Shift+click at least 3 walls to compute an enclosed area");
+      return;
+    }
+    const walls = store.floor.walls.filter((w) => selectedWallIds.includes(w.id));
+    const poly = chainWallsToPolygon(walls);
+    if (!poly) {
+      toast.error("Selected walls don't form a closed loop");
+      setAreaPolygon(null); setAreaValue(null);
+      return;
+    }
+    const area = polygonArea(poly);
+    setAreaPolygon(poly); setAreaValue(area);
+    toast.success(`Enclosed area: ${area.toFixed(2)} ft²`);
+  };
+
+  const clearAreaSelection = () => {
+    setSelectedWallIds([]); setAreaPolygon(null); setAreaValue(null);
+  };
+
+  const handleExportDXF = (includeFurniture: boolean) => {
+    if (!projects.activeId) return;
+    try {
+      exportDXF(store.plan, { includeFurniture });
+      toast.success(`DXF exported${includeFurniture ? " with furniture" : ""}`);
+    } catch (err) {
+      console.error(err);
+      toast.error("DXF export failed");
+    }
+  };
 
   // First-visit: open a fresh empty Sketch dialog; do NOT auto-create demo data.
   React.useEffect(() => {

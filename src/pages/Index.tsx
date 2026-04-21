@@ -380,6 +380,7 @@ const Index = () => {
                 mode={mode}
                 snap={snap}
                 addCustomDimension={store.addCustomDimension}
+                updateCustomDimension={store.updateCustomDimension}
                 removeCustomDimension={store.removeCustomDimension}
                 selectedWallIds={selectedWallIds}
                 toggleWallInSelection={toggleWallInSelection}

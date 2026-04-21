@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { nanoid } from "nanoid";
-import type { Floor, FloorData, FloorMeta, Opening, PlanData, PropItem, Room, Wall } from "./types";
+import type { CustomDimension, Floor, FloorData, FloorMeta, Opening, PlanData, PropItem, Room, Wall } from "./types";
 import { makeBlankFloorFrom, makeInitialPlan } from "./initialPlan";
 import { writePlan, loadProject } from "./projectsStore";
 

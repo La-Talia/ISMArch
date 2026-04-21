@@ -20,6 +20,7 @@ interface Props {
   mode: CanvasMode;
   snap: boolean;
   addCustomDimension: (d: Omit<CustomDimension, "id">) => void;
+  updateCustomDimension: (id: string, patch: Partial<CustomDimension>) => void;
   removeCustomDimension: (id: string) => void;
   selectedWallIds: string[];
   toggleWallInSelection: (id: string) => void;
@@ -39,7 +40,7 @@ type DragState =
 
 export const FloorCanvas: React.FC<Props> = ({
   floor, selection, setSelection, updateProp, updateWall, updateOpening, updateRoom, showDimensions, showGrid,
-  zoom, onCursor, mode, snap, addCustomDimension, removeCustomDimension,
+  zoom, onCursor, mode, snap, addCustomDimension, updateCustomDimension, removeCustomDimension,
   selectedWallIds, toggleWallInSelection, enclosedAreaPolygon,
 }) => {
   const padding = 8;
@@ -152,10 +153,9 @@ export const FloorCanvas: React.FC<Props> = ({
         labelDy: Math.round((ds.origDy + dy) * 4) / 4,
       });
     } else if (ds.kind === "dim_offset") {
-      // project cursor onto the dimension's normal
+      // project cursor displacement onto the dimension's normal
       const proj = (x - ds.baseX) * ds.nx + (y - ds.baseY) * ds.ny;
-      // updated below via prop
-      (window as unknown as { __dimUpdate?: (id: string, off: number) => void }).__dimUpdate?.(ds.id, ds.origOffset + proj);
+      updateCustomDimension(ds.id, { offset: Math.round((ds.origOffset + proj) * 100) / 100 });
     }
   };
   const onPointerUp = () => { dragRef.current = null; };
@@ -550,18 +550,43 @@ export const FloorCanvas: React.FC<Props> = ({
                 onClick={(e) => { e.stopPropagation(); setSelection({ kind: "dimension", id: d.id }); }}
                 className="cursor-pointer">
                 <line x1={ftToPx(d.x1)} y1={ftToPx(d.y1)} x2={ftToPx(ax)} y2={ftToPx(ay)} stroke={stroke} strokeWidth={0.8} strokeDasharray="2 2" />
-                <line x1={ftToPx(d.x2)} y1={ftToPx(d.y2)} x2={ftToPx(bx)} y2={ftToPx(by)} stroke={stroke} strokeWidth={0.8} strokeDasharray="2 2" />
-                <line x1={ftToPx(ax)} y1={ftToPx(ay)} x2={ftToPx(bx)} y2={ftToPx(by)} stroke={stroke} strokeWidth={1.2}
+                <line x1={ftToPx(d.x2)} y1={ftToPx(d.y2)} x2={ftToPx(bx)} y2={ftToPx(by)} stroke={stroke} strokeWidth={1.2}
                   markerStart="url(#dimArrow)" markerEnd="url(#dimArrow)" />
+                {/* Invisible thicker hit area along the dimension line for dragging perpendicular */}
+                <line x1={ftToPx(ax)} y1={ftToPx(ay)} x2={ftToPx(bx)} y2={ftToPx(by)}
+                  stroke="transparent" strokeWidth={14} style={{ cursor: "move" }}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    setSelection({ kind: "dimension", id: d.id });
+                    (e.target as Element).setPointerCapture?.(e.pointerId);
+                    const { x: cx, y: cy } = toFt(e.clientX, e.clientY);
+                    dragRef.current = {
+                      kind: "dim_offset", id: d.id, nx, ny,
+                      baseX: cx, baseY: cy, origOffset: d.offset,
+                    };
+                  }} />
+                <line x1={ftToPx(d.x2)} y1={ftToPx(d.y2)} x2={ftToPx(bx)} y2={ftToPx(by)} stroke={stroke} strokeWidth={0.8} strokeDasharray="2 2" />
                 <rect x={tx - 22} y={ty - 8} width={44} height={14} rx={2}
-                  fill="hsl(var(--background))" stroke={stroke} strokeWidth={0.6} opacity={0.95} />
+                  fill="hsl(var(--background))" stroke={stroke} strokeWidth={0.6} opacity={0.95}
+                  style={{ cursor: "move" }}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    setSelection({ kind: "dimension", id: d.id });
+                    (e.target as Element).setPointerCapture?.(e.pointerId);
+                    const { x: cx, y: cy } = toFt(e.clientX, e.clientY);
+                    dragRef.current = {
+                      kind: "dim_offset", id: d.id, nx, ny,
+                      baseX: cx, baseY: cy, origOffset: d.offset,
+                    };
+                  }} />
                 <text x={tx} y={ty} textAnchor="middle" dominantBaseline="middle"
                   fontSize={10} fontFamily="ui-sans-serif, system-ui"
-                  fill={stroke} className="font-medium">
+                  fill={stroke} className="font-medium" pointerEvents="none">
                   {len.toFixed(2)}'
                 </text>
                 {isSel && (
-                  <circle cx={tx} cy={ty} r={3} fill="hsl(var(--selection))"
+                  <circle cx={ftToPx(bx)} cy={ftToPx(by)} r={4} fill="hsl(var(--selection))"
+                    style={{ cursor: "pointer" }}
                     onClick={(e) => { e.stopPropagation(); removeCustomDimension(d.id); }} />
                 )}
               </g>

@@ -171,10 +171,20 @@ export function usePlanStore(projectId: string | null, onPlanChange?: (id: strin
     });
   };
 
+  const addCustomDimension = (d: Omit<CustomDimension, "id">) => {
+    const dim: CustomDimension = { ...d, id: `d_${nanoid(6)}` };
+    updateFloor((f) => ({ ...f, customDimensions: [...(f.customDimensions || []), dim] }));
+  };
+  const updateCustomDimension = (id: string, patch: Partial<CustomDimension>) =>
+    updateFloor((f) => ({ ...f, customDimensions: (f.customDimensions || []).map((d) => d.id === id ? { ...d, ...patch } : d) }));
+  const removeCustomDimension = (id: string) =>
+    updateFloor((f) => ({ ...f, customDimensions: (f.customDimensions || []).filter((d) => d.id !== id) }));
+
   return {
     plan, activeFloor, setActiveFloor, floor, floorMeta, selection, setSelection,
     addProp, updateProp, addWall, updateWall, addOpening, updateOpening, addRoom, updateRoom,
     deleteSelection, undo, redo, replacePlan,
     setProjectName, renameFloor, addFloor, removeFloor,
+    addCustomDimension, updateCustomDimension, removeCustomDimension,
   };
 }

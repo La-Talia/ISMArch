@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { nanoid } from "nanoid";
-import type { Floor, FloorData, FloorMeta, Opening, PlanData, PropItem, Room, Wall } from "./types";
+import type { CustomDimension, Floor, FloorData, FloorMeta, Opening, PlanData, PropItem, Room, Wall } from "./types";
 import { makeBlankFloorFrom, makeInitialPlan } from "./initialPlan";
 import { writePlan, loadProject } from "./projectsStore";
 
@@ -13,7 +13,7 @@ export function usePlanStore(projectId: string | null, onPlanChange?: (id: strin
     return makeInitialPlan();
   });
   const [activeFloor, setActiveFloor] = useState<Floor>(() => plan.floors[0]?.id || "ground");
-  const [selection, setSelection] = useState<{ kind: "prop" | "wall" | "opening" | "room" | "room_label"; id: string } | null>(null);
+  const [selection, setSelection] = useState<{ kind: "prop" | "wall" | "opening" | "room" | "room_label" | "dimension"; id: string } | null>(null);
   const historyRef = useRef<PlanData[]>([]);
   const futureRef = useRef<PlanData[]>([]);
   const currentIdRef = useRef<string | null>(projectId);
@@ -115,6 +115,8 @@ export function usePlanStore(projectId: string | null, onPlanChange?: (id: strin
         case "room":
         case "room_label":
           return { ...f, rooms: f.rooms.filter((r) => r.id !== selection.id) };
+        case "dimension":
+          return { ...f, customDimensions: (f.customDimensions || []).filter((d) => d.id !== selection.id) };
       }
       return f;
     });
@@ -171,10 +173,20 @@ export function usePlanStore(projectId: string | null, onPlanChange?: (id: strin
     });
   };
 
+  const addCustomDimension = (d: Omit<CustomDimension, "id">) => {
+    const dim: CustomDimension = { ...d, id: `d_${nanoid(6)}` };
+    updateFloor((f) => ({ ...f, customDimensions: [...(f.customDimensions || []), dim] }));
+  };
+  const updateCustomDimension = (id: string, patch: Partial<CustomDimension>) =>
+    updateFloor((f) => ({ ...f, customDimensions: (f.customDimensions || []).map((d) => d.id === id ? { ...d, ...patch } : d) }));
+  const removeCustomDimension = (id: string) =>
+    updateFloor((f) => ({ ...f, customDimensions: (f.customDimensions || []).filter((d) => d.id !== id) }));
+
   return {
     plan, activeFloor, setActiveFloor, floor, floorMeta, selection, setSelection,
     addProp, updateProp, addWall, updateWall, addOpening, updateOpening, addRoom, updateRoom,
     deleteSelection, undo, redo, replacePlan,
     setProjectName, renameFloor, addFloor, removeFloor,
+    addCustomDimension, updateCustomDimension, removeCustomDimension,
   };
 }

@@ -8,7 +8,12 @@ import { Input } from "@/components/ui/input";
 import {
   Plus, Undo2, Redo2, Download, Ruler, Grid3x3, DoorOpen, AppWindow,
   FilePlus, Layers, X, FileDown, FileUp, PanelLeftClose, PanelLeft,
+  PanelRightClose, PanelRight, ZoomIn, ZoomOut, Maximize2, MousePointer2,
+  Magnet, Square, FileCode2,
 } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { usePlanStore } from "@/editor/usePlanStore";
 import { useProjectsStore, planFromPlot, makeDemoPlan } from "@/editor/projectsStore";
 import { FloorCanvas } from "@/editor/FloorCanvas";
@@ -17,6 +22,8 @@ import { PropertiesPanel } from "@/editor/PropertiesPanel";
 import { ProjectSidebar } from "@/editor/ProjectSidebar";
 import { PlotSketcher } from "@/editor/PlotSketcher";
 import { exportProject, pickArchraxFile } from "@/editor/importExport";
+import { exportDXF } from "@/editor/dxfExport";
+import { chainWallsToPolygon, polygonArea } from "@/editor/geom";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -28,7 +35,54 @@ const Index = () => {
   const [editingFloor, setEditingFloor] = React.useState<string | null>(null);
   const [sketchOpen, setSketchOpen] = React.useState(false);
   const [showSidebar, setShowSidebar] = React.useState(true);
+  const [showPropLibrary, setShowPropLibrary] = React.useState(true);
+  const [showPropsPanel, setShowPropsPanel] = React.useState(true);
+  const [zoom, setZoom] = React.useState(1);
+  const [cursor, setCursor] = React.useState<{ x: number; y: number } | null>(null);
+  const [mode, setMode] = React.useState<"select" | "dimension">("select");
+  const [snap, setSnap] = React.useState(true);
+  const [selectedWallIds, setSelectedWallIds] = React.useState<string[]>([]);
+  const [areaPolygon, setAreaPolygon] = React.useState<{ x: number; y: number }[] | null>(null);
+  const [areaValue, setAreaValue] = React.useState<number | null>(null);
   const canvasWrap = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => { setSelectedWallIds([]); setAreaPolygon(null); setAreaValue(null); }, [projects.activeId, store.activeFloor]);
+
+  const toggleWallInSelection = React.useCallback((id: string) => {
+    setSelectedWallIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  }, []);
+
+  const computeArea = () => {
+    if (selectedWallIds.length < 3) {
+      toast.error("Shift+click at least 3 walls to compute an enclosed area");
+      return;
+    }
+    const walls = store.floor.walls.filter((w) => selectedWallIds.includes(w.id));
+    const poly = chainWallsToPolygon(walls);
+    if (!poly) {
+      toast.error("Selected walls don't form a closed loop");
+      setAreaPolygon(null); setAreaValue(null);
+      return;
+    }
+    const area = polygonArea(poly);
+    setAreaPolygon(poly); setAreaValue(area);
+    toast.success(`Enclosed area: ${area.toFixed(2)} ft²`);
+  };
+
+  const clearAreaSelection = () => {
+    setSelectedWallIds([]); setAreaPolygon(null); setAreaValue(null);
+  };
+
+  const handleExportDXF = (includeFurniture: boolean) => {
+    if (!projects.activeId) return;
+    try {
+      exportDXF(store.plan, { includeFurniture });
+      toast.success(`DXF exported${includeFurniture ? " with furniture" : ""}`);
+    } catch (err) {
+      console.error(err);
+      toast.error("DXF export failed");
+    }
+  };
 
   // First-visit: open a fresh empty Sketch dialog; do NOT auto-create demo data.
   React.useEffect(() => {
@@ -167,6 +221,12 @@ const Index = () => {
           <div className="mx-2 h-6 w-px bg-border" />
           <Toggle pressed={showDim} onPressedChange={setShowDim} size="sm" title="Toggle dimensions"><Ruler className="h-4 w-4" /></Toggle>
           <Toggle pressed={showGrid} onPressedChange={setShowGrid} size="sm" title="Toggle grid"><Grid3x3 className="h-4 w-4" /></Toggle>
+          <Toggle pressed={showPropLibrary} onPressedChange={setShowPropLibrary} size="sm" title="Toggle furniture panel" disabled={!projects.activeId}>
+            {showPropLibrary ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
+          </Toggle>
+          <Toggle pressed={showPropsPanel} onPressedChange={setShowPropsPanel} size="sm" title="Toggle properties panel" disabled={!projects.activeId}>
+            {showPropsPanel ? <PanelRightClose className="h-4 w-4" /> : <PanelRight className="h-4 w-4" />}
+          </Toggle>
           <div className="mx-2 h-6 w-px bg-border" />
           <Button variant="outline" size="sm" onClick={() => projects.activeId && exportProject(store.plan)} disabled={!projects.activeId} title="Export .archrax">
             <FileDown className="mr-1 h-4 w-4" />.archrax
@@ -176,6 +236,17 @@ const Index = () => {
           </Button>
           <Button variant="outline" size="sm" onClick={exportPNG} disabled={!projects.activeId}><Download className="mr-1 h-4 w-4" />PNG</Button>
           <Button variant="outline" size="sm" onClick={exportPDF} disabled={!projects.activeId}><Download className="mr-1 h-4 w-4" />PDF</Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={!projects.activeId} title="Export DXF (CAD)">
+                <FileCode2 className="mr-1 h-4 w-4" />DXF
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExportDXF(true)}>With furniture</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExportDXF(false)}>Without furniture</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
@@ -222,10 +293,36 @@ const Index = () => {
       {/* Tool bar */}
       {projects.activeId && (
         <div className="flex items-center gap-2 border-b bg-muted/40 px-4 py-1.5 text-xs">
+          <Toggle pressed={mode === "select"} onPressedChange={() => setMode("select")} size="sm" title="Select / move tool"><MousePointer2 className="h-3 w-3" /></Toggle>
+          <Toggle pressed={mode === "dimension"} onPressedChange={() => setMode(mode === "dimension" ? "select" : "dimension")} size="sm" title="Dimension tool — click two points">
+            <Ruler className="h-3 w-3" />
+          </Toggle>
+          <Toggle pressed={snap} onPressedChange={setSnap} size="sm" title="Snap to walls/corners (Shift toggles while drawing)">
+            <Magnet className="h-3 w-3" />
+          </Toggle>
+          <div className="mx-1 h-4 w-px bg-border" />
           <Button size="sm" variant="ghost" onClick={addWall}><Plus className="mr-1 h-3 w-3" />Wall</Button>
           <Button size="sm" variant="ghost" onClick={() => addOpening("door")}><DoorOpen className="mr-1 h-3 w-3" />Door</Button>
           <Button size="sm" variant="ghost" onClick={() => addOpening("window")}><AppWindow className="mr-1 h-3 w-3" />Window</Button>
           <Button size="sm" variant="ghost" onClick={addRoom}><Plus className="mr-1 h-3 w-3" />Room</Button>
+          <div className="mx-1 h-4 w-px bg-border" />
+          <Button size="sm" variant="ghost" onClick={computeArea} title="Shift+click walls then compute the area they enclose">
+            <Square className="mr-1 h-3 w-3" />Area
+            {selectedWallIds.length > 0 && <span className="ml-1 rounded bg-primary/20 px-1 text-[10px]">{selectedWallIds.length}</span>}
+          </Button>
+          {(selectedWallIds.length > 0 || areaPolygon) && (
+            <Button size="sm" variant="ghost" onClick={clearAreaSelection} className="h-6 px-2 text-[10px]">Clear</Button>
+          )}
+          {areaValue !== null && (
+            <span className="rounded bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+              {areaValue.toFixed(2)} ft²
+            </span>
+          )}
+          <div className="mx-1 h-4 w-px bg-border" />
+          <Button size="sm" variant="ghost" onClick={() => setZoom((z) => Math.max(0.25, z / 1.25))} title="Zoom out"><ZoomOut className="h-3 w-3" /></Button>
+          <span className="w-10 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
+          <Button size="sm" variant="ghost" onClick={() => setZoom((z) => Math.min(4, z * 1.25))} title="Zoom in"><ZoomIn className="h-3 w-3" /></Button>
+          <Button size="sm" variant="ghost" onClick={() => setZoom(1)} title="Reset zoom"><Maximize2 className="h-3 w-3" /></Button>
           <span className="ml-auto text-muted-foreground">
             {store.floor.props.length} props · {store.floor.walls.length} walls · {store.floor.rooms.length} rooms
           </span>
@@ -252,20 +349,22 @@ const Index = () => {
 
         {projects.activeId ? (
           <>
-            <aside className="w-60 shrink-0 border-r bg-card flex flex-col">
-              <div className="flex-1 overflow-hidden">
-                <PropLibrary onAdd={store.addProp} />
-              </div>
-              <div className="border-t p-3">
-                <div className="rounded-md border-2 border-dashed border-border bg-muted/40 p-3 text-center">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Sponsored</div>
-                  <div className="text-xs font-medium">Your Ad Here</div>
-                  <div className="text-[10px] text-muted-foreground mt-1">160 × 90 ad slot</div>
+            {showPropLibrary && (
+              <aside className="w-60 shrink-0 border-r bg-card flex flex-col">
+                <div className="flex-1 overflow-hidden">
+                  <PropLibrary onAdd={store.addProp} />
                 </div>
-              </div>
-            </aside>
+                <div className="border-t p-3">
+                  <div className="rounded-md border-2 border-dashed border-border bg-muted/40 p-3 text-center">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Sponsored</div>
+                    <div className="text-xs font-medium">Your Ad Here</div>
+                    <div className="text-[10px] text-muted-foreground mt-1">160 × 90 ad slot</div>
+                  </div>
+                </div>
+              </aside>
+            )}
 
-            <main ref={canvasWrap} className="flex-1 overflow-hidden">
+            <main ref={canvasWrap} className="relative flex-1 overflow-hidden">
               <FloorCanvas
                 floor={store.floor}
                 selection={store.selection}
@@ -276,29 +375,44 @@ const Index = () => {
                 updateRoom={store.updateRoom}
                 showDimensions={showDim}
                 showGrid={showGrid}
+                zoom={zoom}
+                onCursor={setCursor}
+                mode={mode}
+                snap={snap}
+                addCustomDimension={store.addCustomDimension}
+                removeCustomDimension={store.removeCustomDimension}
+                selectedWallIds={selectedWallIds}
+                toggleWallInSelection={toggleWallInSelection}
+                enclosedAreaPolygon={areaPolygon}
               />
+              {/* Cursor coords (bottom-right overlay) */}
+              <div className="pointer-events-none absolute bottom-1 right-2 rounded bg-background/80 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground shadow-sm">
+                {cursor ? `${cursor.x.toFixed(2)} ft, ${cursor.y.toFixed(2)} ft` : "—"}
+              </div>
             </main>
 
-            <aside className="w-72 shrink-0 border-l bg-card flex flex-col">
-              <div className="flex-1 overflow-hidden">
-                <PropertiesPanel
-                  floor={store.floor}
-                  selection={store.selection}
-                  updateProp={store.updateProp}
-                  updateWall={store.updateWall}
-                  updateOpening={store.updateOpening}
-                  updateRoom={store.updateRoom}
-                  onDelete={store.deleteSelection}
-                />
-              </div>
-              <div className="border-t p-3">
-                <div className="rounded-md border-2 border-dashed border-border bg-muted/40 p-4 text-center">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Sponsored</div>
-                  <div className="text-sm font-medium">Promote Your Service</div>
-                  <div className="text-[10px] text-muted-foreground mt-1">240 × 120 ad slot</div>
+            {showPropsPanel && (
+              <aside className="w-72 shrink-0 border-l bg-card flex flex-col">
+                <div className="flex-1 overflow-hidden">
+                  <PropertiesPanel
+                    floor={store.floor}
+                    selection={store.selection}
+                    updateProp={store.updateProp}
+                    updateWall={store.updateWall}
+                    updateOpening={store.updateOpening}
+                    updateRoom={store.updateRoom}
+                    onDelete={store.deleteSelection}
+                  />
                 </div>
-              </div>
-            </aside>
+                <div className="border-t p-3">
+                  <div className="rounded-md border-2 border-dashed border-border bg-muted/40 p-4 text-center">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Sponsored</div>
+                    <div className="text-sm font-medium">Promote Your Service</div>
+                    <div className="text-[10px] text-muted-foreground mt-1">240 × 120 ad slot</div>
+                  </div>
+                </div>
+              </aside>
+            )}
           </>
         ) : (
           <main className="flex flex-1 items-center justify-center bg-muted/20">

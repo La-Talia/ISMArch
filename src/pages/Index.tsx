@@ -8,7 +8,12 @@ import { Input } from "@/components/ui/input";
 import {
   Plus, Undo2, Redo2, Download, Ruler, Grid3x3, DoorOpen, AppWindow,
   FilePlus, Layers, X, FileDown, FileUp, PanelLeftClose, PanelLeft,
+  PanelRightClose, PanelRight, ZoomIn, ZoomOut, Maximize2, MousePointer2,
+  Magnet, Square, FileCode2,
 } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { usePlanStore } from "@/editor/usePlanStore";
 import { useProjectsStore, planFromPlot, makeDemoPlan } from "@/editor/projectsStore";
 import { FloorCanvas } from "@/editor/FloorCanvas";
@@ -17,6 +22,7 @@ import { PropertiesPanel } from "@/editor/PropertiesPanel";
 import { ProjectSidebar } from "@/editor/ProjectSidebar";
 import { PlotSketcher } from "@/editor/PlotSketcher";
 import { exportProject, pickArchraxFile } from "@/editor/importExport";
+import { exportDXF } from "@/editor/dxfExport";
 import { toast } from "sonner";
 
 const Index = () => {

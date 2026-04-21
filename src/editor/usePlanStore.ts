@@ -115,6 +115,8 @@ export function usePlanStore(projectId: string | null, onPlanChange?: (id: strin
         case "room":
         case "room_label":
           return { ...f, rooms: f.rooms.filter((r) => r.id !== selection.id) };
+        case "dimension":
+          return { ...f, customDimensions: (f.customDimensions || []).filter((d) => d.id !== selection.id) };
       }
       return f;
     });

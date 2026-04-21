@@ -54,6 +54,15 @@ export interface PlotShape {
   kind: "polygon" | "freehand";
 }
 
+export interface CustomDimension {
+  id: string;
+  // Two endpoints in feet
+  x1: number; y1: number; x2: number; y2: number;
+  // Perpendicular offset (ft) of the dimension line from the measured segment
+  offset: number;
+  label?: string;
+}
+
 export interface FloorData {
   // Footprint bounds (used for dimension chains and as the outer canvas extents)
   bounds: { x: number; y: number; w: number; h: number };
@@ -63,6 +72,7 @@ export interface FloorData {
   openings: Opening[];
   rooms: Room[];
   props: PropItem[];
+  customDimensions?: CustomDimension[];
 }
 
 export interface FloorMeta {

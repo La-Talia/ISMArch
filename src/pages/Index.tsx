@@ -349,21 +349,6 @@ const Index = () => {
 
         {projects.activeId ? (
           <>
-            <aside className="w-60 shrink-0 border-r bg-card flex flex-col">
-              <div className="flex-1 overflow-hidden">
-                <PropLibrary onAdd={store.addProp} />
-              </div>
-              <div className="border-t p-3">
-                <div className="rounded-md border-2 border-dashed border-border bg-muted/40 p-3 text-center">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Sponsored</div>
-                  <div className="text-xs font-medium">Your Ad Here</div>
-                  <div className="text-[10px] text-muted-foreground mt-1">160 × 90 ad slot</div>
-                </div>
-              </div>
-            </aside>
-
-        {projects.activeId ? (
-          <>
             {showPropLibrary && (
               <aside className="w-60 shrink-0 border-r bg-card flex flex-col">
                 <div className="flex-1 overflow-hidden">

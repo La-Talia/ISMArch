@@ -13,7 +13,7 @@ export function usePlanStore(projectId: string | null, onPlanChange?: (id: strin
     return makeInitialPlan();
   });
   const [activeFloor, setActiveFloor] = useState<Floor>(() => plan.floors[0]?.id || "ground");
-  const [selection, setSelection] = useState<{ kind: "prop" | "wall" | "opening" | "room" | "room_label"; id: string } | null>(null);
+  const [selection, setSelection] = useState<{ kind: "prop" | "wall" | "opening" | "room" | "room_label" | "dimension"; id: string } | null>(null);
   const historyRef = useRef<PlanData[]>([]);
   const futureRef = useRef<PlanData[]>([]);
   const currentIdRef = useRef<string | null>(projectId);

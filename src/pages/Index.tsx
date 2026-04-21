@@ -293,10 +293,36 @@ const Index = () => {
       {/* Tool bar */}
       {projects.activeId && (
         <div className="flex items-center gap-2 border-b bg-muted/40 px-4 py-1.5 text-xs">
+          <Toggle pressed={mode === "select"} onPressedChange={() => setMode("select")} size="sm" title="Select / move tool"><MousePointer2 className="h-3 w-3" /></Toggle>
+          <Toggle pressed={mode === "dimension"} onPressedChange={() => setMode(mode === "dimension" ? "select" : "dimension")} size="sm" title="Dimension tool — click two points">
+            <Ruler className="h-3 w-3" />
+          </Toggle>
+          <Toggle pressed={snap} onPressedChange={setSnap} size="sm" title="Snap to walls/corners (Shift toggles while drawing)">
+            <Magnet className="h-3 w-3" />
+          </Toggle>
+          <div className="mx-1 h-4 w-px bg-border" />
           <Button size="sm" variant="ghost" onClick={addWall}><Plus className="mr-1 h-3 w-3" />Wall</Button>
           <Button size="sm" variant="ghost" onClick={() => addOpening("door")}><DoorOpen className="mr-1 h-3 w-3" />Door</Button>
           <Button size="sm" variant="ghost" onClick={() => addOpening("window")}><AppWindow className="mr-1 h-3 w-3" />Window</Button>
           <Button size="sm" variant="ghost" onClick={addRoom}><Plus className="mr-1 h-3 w-3" />Room</Button>
+          <div className="mx-1 h-4 w-px bg-border" />
+          <Button size="sm" variant="ghost" onClick={computeArea} title="Shift+click walls then compute the area they enclose">
+            <Square className="mr-1 h-3 w-3" />Area
+            {selectedWallIds.length > 0 && <span className="ml-1 rounded bg-primary/20 px-1 text-[10px]">{selectedWallIds.length}</span>}
+          </Button>
+          {(selectedWallIds.length > 0 || areaPolygon) && (
+            <Button size="sm" variant="ghost" onClick={clearAreaSelection} className="h-6 px-2 text-[10px]">Clear</Button>
+          )}
+          {areaValue !== null && (
+            <span className="rounded bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+              {areaValue.toFixed(2)} ft²
+            </span>
+          )}
+          <div className="mx-1 h-4 w-px bg-border" />
+          <Button size="sm" variant="ghost" onClick={() => setZoom((z) => Math.max(0.25, z / 1.25))} title="Zoom out"><ZoomOut className="h-3 w-3" /></Button>
+          <span className="w-10 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
+          <Button size="sm" variant="ghost" onClick={() => setZoom((z) => Math.min(4, z * 1.25))} title="Zoom in"><ZoomIn className="h-3 w-3" /></Button>
+          <Button size="sm" variant="ghost" onClick={() => setZoom(1)} title="Reset zoom"><Maximize2 className="h-3 w-3" /></Button>
           <span className="ml-auto text-muted-foreground">
             {store.floor.props.length} props · {store.floor.walls.length} walls · {store.floor.rooms.length} rooms
           </span>
@@ -336,7 +362,24 @@ const Index = () => {
               </div>
             </aside>
 
-            <main ref={canvasWrap} className="flex-1 overflow-hidden">
+        {projects.activeId ? (
+          <>
+            {showPropLibrary && (
+              <aside className="w-60 shrink-0 border-r bg-card flex flex-col">
+                <div className="flex-1 overflow-hidden">
+                  <PropLibrary onAdd={store.addProp} />
+                </div>
+                <div className="border-t p-3">
+                  <div className="rounded-md border-2 border-dashed border-border bg-muted/40 p-3 text-center">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Sponsored</div>
+                    <div className="text-xs font-medium">Your Ad Here</div>
+                    <div className="text-[10px] text-muted-foreground mt-1">160 × 90 ad slot</div>
+                  </div>
+                </div>
+              </aside>
+            )}
+
+            <main ref={canvasWrap} className="relative flex-1 overflow-hidden">
               <FloorCanvas
                 floor={store.floor}
                 selection={store.selection}
@@ -347,29 +390,44 @@ const Index = () => {
                 updateRoom={store.updateRoom}
                 showDimensions={showDim}
                 showGrid={showGrid}
+                zoom={zoom}
+                onCursor={setCursor}
+                mode={mode}
+                snap={snap}
+                addCustomDimension={store.addCustomDimension}
+                removeCustomDimension={store.removeCustomDimension}
+                selectedWallIds={selectedWallIds}
+                toggleWallInSelection={toggleWallInSelection}
+                enclosedAreaPolygon={areaPolygon}
               />
+              {/* Cursor coords (bottom-right overlay) */}
+              <div className="pointer-events-none absolute bottom-1 right-2 rounded bg-background/80 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground shadow-sm">
+                {cursor ? `${cursor.x.toFixed(2)} ft, ${cursor.y.toFixed(2)} ft` : "—"}
+              </div>
             </main>
 
-            <aside className="w-72 shrink-0 border-l bg-card flex flex-col">
-              <div className="flex-1 overflow-hidden">
-                <PropertiesPanel
-                  floor={store.floor}
-                  selection={store.selection}
-                  updateProp={store.updateProp}
-                  updateWall={store.updateWall}
-                  updateOpening={store.updateOpening}
-                  updateRoom={store.updateRoom}
-                  onDelete={store.deleteSelection}
-                />
-              </div>
-              <div className="border-t p-3">
-                <div className="rounded-md border-2 border-dashed border-border bg-muted/40 p-4 text-center">
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Sponsored</div>
-                  <div className="text-sm font-medium">Promote Your Service</div>
-                  <div className="text-[10px] text-muted-foreground mt-1">240 × 120 ad slot</div>
+            {showPropsPanel && (
+              <aside className="w-72 shrink-0 border-l bg-card flex flex-col">
+                <div className="flex-1 overflow-hidden">
+                  <PropertiesPanel
+                    floor={store.floor}
+                    selection={store.selection}
+                    updateProp={store.updateProp}
+                    updateWall={store.updateWall}
+                    updateOpening={store.updateOpening}
+                    updateRoom={store.updateRoom}
+                    onDelete={store.deleteSelection}
+                  />
                 </div>
-              </div>
-            </aside>
+                <div className="border-t p-3">
+                  <div className="rounded-md border-2 border-dashed border-border bg-muted/40 p-4 text-center">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Sponsored</div>
+                    <div className="text-sm font-medium">Promote Your Service</div>
+                    <div className="text-[10px] text-muted-foreground mt-1">240 × 120 ad slot</div>
+                  </div>
+                </div>
+              </aside>
+            )}
           </>
         ) : (
           <main className="flex flex-1 items-center justify-center bg-muted/20">

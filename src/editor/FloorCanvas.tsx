@@ -20,6 +20,7 @@ interface Props {
   mode: CanvasMode;
   snap: boolean;
   addCustomDimension: (d: Omit<CustomDimension, "id">) => void;
+  updateCustomDimension: (id: string, patch: Partial<CustomDimension>) => void;
   removeCustomDimension: (id: string) => void;
   selectedWallIds: string[];
   toggleWallInSelection: (id: string) => void;
@@ -39,7 +40,7 @@ type DragState =
 
 export const FloorCanvas: React.FC<Props> = ({
   floor, selection, setSelection, updateProp, updateWall, updateOpening, updateRoom, showDimensions, showGrid,
-  zoom, onCursor, mode, snap, addCustomDimension, removeCustomDimension,
+  zoom, onCursor, mode, snap, addCustomDimension, updateCustomDimension, removeCustomDimension,
   selectedWallIds, toggleWallInSelection, enclosedAreaPolygon,
 }) => {
   const padding = 8;
@@ -152,10 +153,9 @@ export const FloorCanvas: React.FC<Props> = ({
         labelDy: Math.round((ds.origDy + dy) * 4) / 4,
       });
     } else if (ds.kind === "dim_offset") {
-      // project cursor onto the dimension's normal
+      // project cursor displacement onto the dimension's normal
       const proj = (x - ds.baseX) * ds.nx + (y - ds.baseY) * ds.ny;
-      // updated below via prop
-      (window as unknown as { __dimUpdate?: (id: string, off: number) => void }).__dimUpdate?.(ds.id, ds.origOffset + proj);
+      updateCustomDimension(ds.id, { offset: Math.round((ds.origOffset + proj) * 100) / 100 });
     }
   };
   const onPointerUp = () => { dragRef.current = null; };

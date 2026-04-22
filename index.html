@@ -3,31 +3,54 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ffffff" />
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
 
     <!-- Primary Meta -->
-    <title>ArchRax — Floor Plan Editor</title>
-    <meta name="description" content="ArchRax is a free browser-based floor plan editor. Sketch your plot, design rooms, and export your floor plans easily — no software needed." />
-<meta property="og:description" content="ArchRax is a free browser-based floor plan editor. Sketch your plot, design rooms, and export your floor plans easily — no software needed." />
+    <title>ArchRax — Free Online Floor Plan Editor</title>
+    <meta name="description" content="ArchRax is a free, browser-based floor plan editor. Sketch your plot, design rooms with walls, doors, and windows, place furniture, and export to PNG, PDF, or DXF — no install required." />
+    <meta name="author" content="ArchRax" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href="https://archrax.netlify.app/" />
 
-    <!-- Open Graph (controls link preview on WhatsApp, Telegram, etc.) -->
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ArchRax" />
     <meta property="og:url" content="https://archrax.netlify.app/" />
-    <meta property="og:title" content="ArchRax — Floor Plan Editor" />
-    <meta property="og:description" content="Sketch your plot and design floor plans in your browser." />
-
-    <!-- ✅ Replace this URL with any image you want shown in previews -->
+    <meta property="og:title" content="ArchRax — Free Online Floor Plan Editor" />
+    <meta property="og:description" content="Sketch a plot, design floor plans, place furniture, and export to PNG, PDF, or DXF — right in your browser." />
     <meta property="og:image" content="https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1200&h=630&fit=crop" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="ArchRax — Floor Plan Editor" />
-    <meta name="twitter:description" content="Sketch your plot and design floor plans in your browser." />
+    <meta name="twitter:title" content="ArchRax — Free Online Floor Plan Editor" />
+    <meta name="twitter:description" content="Sketch a plot, design floor plans, place furniture, and export to PNG, PDF, or DXF — right in your browser." />
     <meta name="twitter:image" content="https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1200&h=630&fit=crop" />
+
+    <!-- Structured data: WebApplication -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "ArchRax",
+      "url": "https://archrax.netlify.app/",
+      "description": "Free browser-based floor plan editor. Sketch plots, design rooms, place furniture, and export to PNG, PDF, or DXF.",
+      "applicationCategory": "DesignApplication",
+      "operatingSystem": "Any (browser)",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+    }
+    </script>
+
+    <!--
+      Google AdSense script.
+      Replace ca-pub-XXXXXXXXXXXXXXXX with your real publisher ID after approval,
+      then set VITE_ADSENSE_CLIENT in your env so <AdSlot /> components activate.
+    -->
+    <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
   </head>
   <body>
     <div id="root"></div>

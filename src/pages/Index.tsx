@@ -430,6 +430,17 @@ const Index = () => {
         )}
       </div>
 
+      {/* Slim footer with crawlable links to legal/info pages — required for AdSense */}
+      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t bg-muted/30 px-4 py-1.5 text-[11px] text-muted-foreground">
+        <span>© {new Date().getFullYear()} ArchRax</span>
+        <Link to="/about" className="hover:text-foreground hover:underline">About</Link>
+        <Link to="/help" className="hover:text-foreground hover:underline">Help</Link>
+        <Link to="/contact" className="hover:text-foreground hover:underline">Contact</Link>
+        <Link to="/privacy" className="hover:text-foreground hover:underline">Privacy</Link>
+        <Link to="/terms" className="hover:text-foreground hover:underline">Terms</Link>
+        <Link to="/cookies" className="hover:text-foreground hover:underline">Cookies</Link>
+      </div>
+
       <PlotSketcher
         open={sketchOpen}
         onClose={() => { setSketchOpen(false); projects.markFirstVisitDone(); }}

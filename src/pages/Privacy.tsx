@@ -79,7 +79,7 @@ const Privacy = () => (
       Depending on your location, you may have rights to access, correct, or
       delete personal information we hold about you, and to object to or
       restrict certain processing. Contact us at{" "}
-      <a href="mailto:privacy@archrax.app">privacy@archrax.app</a> to exercise
+      <a href="mailto:raxitgupta5@gmail.com">raxitgupta5@gmail.com</a> to exercise
       these rights.
     </p>
 
@@ -98,7 +98,7 @@ const Privacy = () => (
 
     <h2>10. Contact</h2>
     <p>
-      Questions? Email <a href="mailto:privacy@archrax.app">privacy@archrax.app</a>{" "}
+      Questions? Email <a href="mailto:raxitgupta5@gmail.com">raxitgupta5@gmail.com</a>{" "}
       or visit our <a href="/contact">contact page</a>.
     </p>
   </PageLayout>

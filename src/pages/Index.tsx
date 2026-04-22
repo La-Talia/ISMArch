@@ -24,6 +24,8 @@ import { PlotSketcher } from "@/editor/PlotSketcher";
 import { exportProject, pickArchraxFile } from "@/editor/importExport";
 import { exportDXF } from "@/editor/dxfExport";
 import { chainWallsToPolygon, polygonArea } from "@/editor/geom";
+import { AdSlot } from "@/components/AdSlot";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -355,11 +357,7 @@ const Index = () => {
                   <PropLibrary onAdd={store.addProp} />
                 </div>
                 <div className="border-t p-3">
-                  <div className="rounded-md border-2 border-dashed border-border bg-muted/40 p-3 text-center">
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Sponsored</div>
-                    <div className="text-xs font-medium">Your Ad Here</div>
-                    <div className="text-[10px] text-muted-foreground mt-1">160 × 90 ad slot</div>
-                  </div>
+                  <AdSlot slot={import.meta.env.VITE_ADSENSE_SLOT_SIDEBAR_LEFT} minHeight={90} />
                 </div>
               </aside>
             )}
@@ -406,11 +404,7 @@ const Index = () => {
                   />
                 </div>
                 <div className="border-t p-3">
-                  <div className="rounded-md border-2 border-dashed border-border bg-muted/40 p-4 text-center">
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Sponsored</div>
-                    <div className="text-sm font-medium">Promote Your Service</div>
-                    <div className="text-[10px] text-muted-foreground mt-1">240 × 120 ad slot</div>
-                  </div>
+                  <AdSlot slot={import.meta.env.VITE_ADSENSE_SLOT_SIDEBAR_RIGHT} minHeight={120} />
                 </div>
               </aside>
             )}
@@ -434,6 +428,17 @@ const Index = () => {
             </div>
           </main>
         )}
+      </div>
+
+      {/* Slim footer with crawlable links to legal/info pages — required for AdSense */}
+      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t bg-muted/30 px-4 py-1.5 text-[11px] text-muted-foreground">
+        <span>© {new Date().getFullYear()} ArchRax</span>
+        <Link to="/about" className="hover:text-foreground hover:underline">About</Link>
+        <Link to="/help" className="hover:text-foreground hover:underline">Help</Link>
+        <Link to="/contact" className="hover:text-foreground hover:underline">Contact</Link>
+        <Link to="/privacy" className="hover:text-foreground hover:underline">Privacy</Link>
+        <Link to="/terms" className="hover:text-foreground hover:underline">Terms</Link>
+        <Link to="/cookies" className="hover:text-foreground hover:underline">Cookies</Link>
       </div>
 
       <PlotSketcher

@@ -15,7 +15,7 @@ const Contact = () => (
     <h2>Support &amp; feedback</h2>
     <p>
       For general support, bug reports, and feature requests, email us at{" "}
-      <a href="mailto:hello@archrax.app">hello@archrax.app</a>. We try to reply
+      <a href="mailto:raxitgupta5@gmail.com">raxitgupta5@gmail.com</a>. We try to reply
       within a few business days.
     </p>
     <p>
@@ -32,13 +32,13 @@ const Contact = () => (
     <p>
       For questions about how we handle data, cookies, or advertising,
       see our <a href="/privacy">privacy policy</a> or email{" "}
-      <a href="mailto:privacy@archrax.app">privacy@archrax.app</a>.
+      <a href="mailto:raxitgupta5@gmail.com">raxitgupta5@gmail.com</a>.
     </p>
 
     <h2>Business &amp; partnerships</h2>
     <p>
       For partnership, sponsorship, or licensing inquiries, please email{" "}
-      <a href="mailto:hello@archrax.app">hello@archrax.app</a> with "Partnership"
+      <a href="mailto:raxitgupta5@gmail.com">raxitgupta5@gmail.com</a> with "Partnership"
       in the subject line.
     </p>
   </PageLayout>

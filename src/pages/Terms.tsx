@@ -85,7 +85,7 @@ const Terms = () => (
     <h2>10. Contact</h2>
     <p>
       Questions about these Terms? Email{" "}
-      <a href="mailto:hello@archrax.app">hello@archrax.app</a>.
+      <a href="mailto:raxitgupta5@gmail.com">raxitgupta5@gmail.com</a>.
     </p>
   </PageLayout>
 );

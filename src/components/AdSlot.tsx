@@ -23,7 +23,7 @@ type Props = {
   label?: string;
 };
 
-const CLIENT = import.meta.env.VITE_ADSENSE_CLIENT as string | undefined;
+const CLIENT = "ca-pub-1451910682418409";
 
 export const AdSlot: React.FC<Props> = ({
   slot,

@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
 import { SiteFooter } from "./SiteFooter";
+import { AdSlot } from "./AdSlot";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
@@ -10,9 +11,16 @@ type Props = {
   children: React.ReactNode;
 };
 
+const ADSENSE_CLIENT = "ca-pub-1451910682418409";
+const ADSENSE_SRC = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
+
 /**
  * Shared layout for static info pages (about, privacy, terms, etc.).
- * Sets <title>/<meta description> for SEO and AdSense crawlability.
+ *
+ * The AdSense loader script is injected here — NOT in index.html — so it only
+ * runs on pages that have substantial publisher content (articles). The
+ * editor route is a tool/behavioral surface and Google policy forbids ads on
+ * such screens, so we keep the loader off of it entirely.
  */
 export const PageLayout: React.FC<Props> = ({ title, description, children }) => {
   React.useEffect(() => {
@@ -26,7 +34,6 @@ export const PageLayout: React.FC<Props> = ({ title, description, children }) =>
       }
       tag.setAttribute("content", description);
     }
-    // Canonical
     let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
     if (!link) {
       link = document.createElement("link");
@@ -34,6 +41,15 @@ export const PageLayout: React.FC<Props> = ({ title, description, children }) =>
       document.head.appendChild(link);
     }
     link.setAttribute("href", window.location.origin + window.location.pathname);
+
+    // Inject AdSense loader once, only on content pages.
+    if (!document.querySelector(`script[src^="${ADSENSE_SRC}"]`)) {
+      const s = document.createElement("script");
+      s.async = true;
+      s.crossOrigin = "anonymous";
+      s.src = ADSENSE_SRC;
+      document.head.appendChild(s);
+    }
   }, [title, description]);
 
   return (
@@ -57,6 +73,10 @@ export const PageLayout: React.FC<Props> = ({ title, description, children }) =>
           {description && <p className="mb-8 text-muted-foreground">{description}</p>}
           <div className="prose prose-sm max-w-none text-foreground [&_h2]:mt-8 [&_h2]:mb-2 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_p]:mb-4 [&_p]:leading-relaxed [&_ul]:mb-4 [&_ul]:list-disc [&_ul]:pl-6 [&_li]:mb-1 [&_a]:text-primary [&_a]:underline">
             {children}
+          </div>
+          {/* In-article ad slot. Only renders when a real slot ID is configured. */}
+          <div className="mt-10">
+            <AdSlot slot={import.meta.env.VITE_ADSENSE_SLOT_ARTICLE} minHeight={250} />
           </div>
         </article>
       </main>

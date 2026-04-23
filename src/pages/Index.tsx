@@ -24,7 +24,6 @@ import { PlotSketcher } from "@/editor/PlotSketcher";
 import { exportProject, pickArchraxFile } from "@/editor/importExport";
 import { exportDXF } from "@/editor/dxfExport";
 import { chainWallsToPolygon, polygonArea } from "@/editor/geom";
-import { AdSlot } from "@/components/AdSlot";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -356,9 +355,6 @@ const Index = () => {
                 <div className="flex-1 overflow-hidden">
                   <PropLibrary onAdd={store.addProp} />
                 </div>
-                <div className="border-t p-3">
-                  <AdSlot slot={import.meta.env.VITE_ADSENSE_SLOT_SIDEBAR_LEFT} minHeight={90} />
-                </div>
               </aside>
             )}
 
@@ -402,9 +398,6 @@ const Index = () => {
                     updateRoom={store.updateRoom}
                     onDelete={store.deleteSelection}
                   />
-                </div>
-                <div className="border-t p-3">
-                  <AdSlot slot={import.meta.env.VITE_ADSENSE_SLOT_SIDEBAR_RIGHT} minHeight={120} />
                 </div>
               </aside>
             )}

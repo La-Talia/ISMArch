@@ -33,8 +33,17 @@ import { toast } from "sonner";
 const Index = () => {
   const projects = useProjectsStore();
   const store = usePlanStore(projects.activeId, projects.touchProject);
+  const isMobile = useIsMobile();
   const [showDim, setShowDim] = React.useState(true);
   const [showGrid, setShowGrid] = React.useState(true);
+  // Mobile drawers
+  const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
+  const [mobilePropsOpen, setMobilePropsOpen] = React.useState(false);
+  const [mobilePropLibOpen, setMobilePropLibOpen] = React.useState(false);
+  // Auto-open the properties drawer on mobile when something is selected
+  React.useEffect(() => {
+    if (isMobile && store.selection) setMobilePropsOpen(true);
+  }, [isMobile, store.selection]);
   const [editingName, setEditingName] = React.useState(false);
   const [editingFloor, setEditingFloor] = React.useState<string | null>(null);
   const [sketchOpen, setSketchOpen] = React.useState(false);

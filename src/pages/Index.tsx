@@ -192,11 +192,38 @@ const Index = () => {
   return (
     <div className="flex h-screen flex-col bg-background">
       {/* Header */}
-      <header className="flex items-center justify-between border-b px-4 py-2 gap-4">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowSidebar(s => !s)} title="Toggle projects sidebar">
-            {showSidebar ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
-          </Button>
+      <header className="flex items-center justify-between border-b px-2 sm:px-4 py-2 gap-2 sm:gap-4">
+        <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
+          {isMobile ? (
+            <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9" title="Projects">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[85vw] max-w-sm p-0 flex flex-col">
+                <SheetHeader className="px-4 py-3 border-b">
+                  <SheetTitle className="text-sm">Projects</SheetTitle>
+                </SheetHeader>
+                <div className="flex-1 overflow-hidden">
+                  <ProjectSidebar
+                    projects={projects.projects}
+                    activeId={projects.activeId}
+                    onSelect={(id) => { projects.setActiveId(id); setMobileSidebarOpen(false); }}
+                    onNew={() => { handleNewProject(); setMobileSidebarOpen(false); }}
+                    onDelete={projects.deleteProject}
+                    onRename={projects.renameProject}
+                    onExport={handleExport}
+                    onImport={handleImport}
+                  />
+                </div>
+              </SheetContent>
+            </Sheet>
+          ) : (
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowSidebar(s => !s)} title="Toggle projects sidebar">
+              {showSidebar ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
+            </Button>
+          )}
           <div className="min-w-0 flex-1">
             {editingName && projects.activeId ? (
               <Input
@@ -213,19 +240,21 @@ const Index = () => {
               />
             ) : (
               <h1
-                className="text-base font-semibold cursor-pointer hover:underline truncate"
+                className="text-sm sm:text-base font-semibold cursor-pointer hover:underline truncate"
                 onClick={() => projects.activeId && setEditingName(true)}
                 title="Click to rename"
               >
-                {projects.activeId ? store.plan.projectName : "ArchRax — Floor Plan Editor"}
+                {projects.activeId ? store.plan.projectName : "ArchRax"}
               </h1>
             )}
-            <p className="text-xs text-muted-foreground truncate">
+            <p className="hidden sm:block text-xs text-muted-foreground truncate">
               Drag walls/rooms/props. Click a dimension to type exact length. Auto-saved on this device.
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1 shrink-0">
+
+        {/* Desktop action cluster */}
+        <div className="hidden md:flex items-center gap-1 shrink-0">
           <Button variant="outline" size="sm" onClick={handleNewProject} title="New project">
             <FilePlus className="mr-1 h-4 w-4" />New
           </Button>
@@ -258,6 +287,46 @@ const Index = () => {
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => handleExportDXF(true)}>With furniture</DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleExportDXF(false)}>Without furniture</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Mobile action cluster — compact */}
+        <div className="flex md:hidden items-center gap-1 shrink-0">
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={store.undo} disabled={!projects.activeId} title="Undo">
+            <Undo2 className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={store.redo} disabled={!projects.activeId} title="Redo">
+            <Redo2 className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" className="h-9 w-9" onClick={handleNewProject} title="New">
+            <FilePlus className="h-4 w-4" />
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="h-9 w-9" title="Export / Import">
+                <Download className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => projects.activeId && exportProject(store.plan)} disabled={!projects.activeId}>
+                <FileDown className="mr-2 h-4 w-4" />Export .archrax
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleImport}>
+                <FileUp className="mr-2 h-4 w-4" />Import .archrax
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportPNG} disabled={!projects.activeId}>
+                <Download className="mr-2 h-4 w-4" />Export PNG
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportPDF} disabled={!projects.activeId}>
+                <Download className="mr-2 h-4 w-4" />Export PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExportDXF(true)} disabled={!projects.activeId}>
+                <FileCode2 className="mr-2 h-4 w-4" />DXF (with furniture)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExportDXF(false)} disabled={!projects.activeId}>
+                <FileCode2 className="mr-2 h-4 w-4" />DXF (no furniture)
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

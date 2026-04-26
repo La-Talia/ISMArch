@@ -14,6 +14,9 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Menu, FolderOpen, Sofa, Settings2 } from "lucide-react";
 import { usePlanStore } from "@/editor/usePlanStore";
 import { useProjectsStore, planFromPlot, makeDemoPlan } from "@/editor/projectsStore";
 import { FloorCanvas } from "@/editor/FloorCanvas";
@@ -30,8 +33,17 @@ import { toast } from "sonner";
 const Index = () => {
   const projects = useProjectsStore();
   const store = usePlanStore(projects.activeId, projects.touchProject);
+  const isMobile = useIsMobile();
   const [showDim, setShowDim] = React.useState(true);
   const [showGrid, setShowGrid] = React.useState(true);
+  // Mobile drawers
+  const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
+  const [mobilePropsOpen, setMobilePropsOpen] = React.useState(false);
+  const [mobilePropLibOpen, setMobilePropLibOpen] = React.useState(false);
+  // Auto-open the properties drawer on mobile when something is selected
+  React.useEffect(() => {
+    if (isMobile && store.selection) setMobilePropsOpen(true);
+  }, [isMobile, store.selection]);
   const [editingName, setEditingName] = React.useState(false);
   const [editingFloor, setEditingFloor] = React.useState<string | null>(null);
   const [sketchOpen, setSketchOpen] = React.useState(false);
@@ -180,11 +192,38 @@ const Index = () => {
   return (
     <div className="flex h-screen flex-col bg-background">
       {/* Header */}
-      <header className="flex items-center justify-between border-b px-4 py-2 gap-4">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowSidebar(s => !s)} title="Toggle projects sidebar">
-            {showSidebar ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
-          </Button>
+      <header className="flex items-center justify-between border-b px-2 sm:px-4 py-2 gap-2 sm:gap-4">
+        <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
+          {isMobile ? (
+            <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9" title="Projects">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[85vw] max-w-sm p-0 flex flex-col">
+                <SheetHeader className="px-4 py-3 border-b">
+                  <SheetTitle className="text-sm">Projects</SheetTitle>
+                </SheetHeader>
+                <div className="flex-1 overflow-hidden">
+                  <ProjectSidebar
+                    projects={projects.projects}
+                    activeId={projects.activeId}
+                    onSelect={(id) => { projects.setActiveId(id); setMobileSidebarOpen(false); }}
+                    onNew={() => { handleNewProject(); setMobileSidebarOpen(false); }}
+                    onDelete={projects.deleteProject}
+                    onRename={projects.renameProject}
+                    onExport={handleExport}
+                    onImport={handleImport}
+                  />
+                </div>
+              </SheetContent>
+            </Sheet>
+          ) : (
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowSidebar(s => !s)} title="Toggle projects sidebar">
+              {showSidebar ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
+            </Button>
+          )}
           <div className="min-w-0 flex-1">
             {editingName && projects.activeId ? (
               <Input
@@ -201,19 +240,21 @@ const Index = () => {
               />
             ) : (
               <h1
-                className="text-base font-semibold cursor-pointer hover:underline truncate"
+                className="text-sm sm:text-base font-semibold cursor-pointer hover:underline truncate"
                 onClick={() => projects.activeId && setEditingName(true)}
                 title="Click to rename"
               >
-                {projects.activeId ? store.plan.projectName : "ArchRax — Floor Plan Editor"}
+                {projects.activeId ? store.plan.projectName : "ArchRax"}
               </h1>
             )}
-            <p className="text-xs text-muted-foreground truncate">
+            <p className="hidden sm:block text-xs text-muted-foreground truncate">
               Drag walls/rooms/props. Click a dimension to type exact length. Auto-saved on this device.
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1 shrink-0">
+
+        {/* Desktop action cluster */}
+        <div className="hidden md:flex items-center gap-1 shrink-0">
           <Button variant="outline" size="sm" onClick={handleNewProject} title="New project">
             <FilePlus className="mr-1 h-4 w-4" />New
           </Button>
@@ -249,12 +290,52 @@ const Index = () => {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+
+        {/* Mobile action cluster — compact */}
+        <div className="flex md:hidden items-center gap-1 shrink-0">
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={store.undo} disabled={!projects.activeId} title="Undo">
+            <Undo2 className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={store.redo} disabled={!projects.activeId} title="Redo">
+            <Redo2 className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" className="h-9 w-9" onClick={handleNewProject} title="New">
+            <FilePlus className="h-4 w-4" />
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="h-9 w-9" title="Export / Import">
+                <Download className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => projects.activeId && exportProject(store.plan)} disabled={!projects.activeId}>
+                <FileDown className="mr-2 h-4 w-4" />Export .archrax
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleImport}>
+                <FileUp className="mr-2 h-4 w-4" />Import .archrax
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportPNG} disabled={!projects.activeId}>
+                <Download className="mr-2 h-4 w-4" />Export PNG
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportPDF} disabled={!projects.activeId}>
+                <Download className="mr-2 h-4 w-4" />Export PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExportDXF(true)} disabled={!projects.activeId}>
+                <FileCode2 className="mr-2 h-4 w-4" />DXF (with furniture)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExportDXF(false)} disabled={!projects.activeId}>
+                <FileCode2 className="mr-2 h-4 w-4" />DXF (no furniture)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </header>
 
       {/* Floor tabs */}
       {projects.activeId && (
-        <div className="flex items-center gap-2 border-b bg-muted/30 px-4 py-1.5">
-          <Layers className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center gap-2 border-b bg-muted/30 px-2 sm:px-4 py-1.5 overflow-x-auto">
+          <Layers className="h-4 w-4 text-muted-foreground shrink-0" />
           <Tabs value={store.activeFloor} onValueChange={(v) => store.setActiveFloor(v)}>
             <TabsList>
               {store.plan.floors.map((f) => (
@@ -275,7 +356,7 @@ const Index = () => {
                     <span
                       role="button"
                       onClick={(e) => { e.stopPropagation(); if (confirm(`Delete ${f.name}?`)) store.removeFloor(f.id); }}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-70 hover:opacity-100"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 opacity-60 sm:opacity-0 sm:group-hover:opacity-70 hover:opacity-100"
                     >
                       <X className="h-3 w-3" />
                     </span>
@@ -284,16 +365,16 @@ const Index = () => {
               ))}
             </TabsList>
           </Tabs>
-          <Button size="sm" variant="ghost" onClick={store.addFloor} title="Add floor (keeps exterior walls + stairs)">
-            <Plus className="mr-1 h-3 w-3" />Add Floor
+          <Button size="sm" variant="ghost" onClick={store.addFloor} title="Add floor (keeps exterior walls + stairs)" className="shrink-0">
+            <Plus className="h-3 w-3 sm:mr-1" /><span className="hidden sm:inline">Add Floor</span>
           </Button>
-          <span className="ml-auto text-xs text-muted-foreground">Double-click a tab to rename</span>
+          <span className="ml-auto hidden md:inline text-xs text-muted-foreground shrink-0">Double-click a tab to rename</span>
         </div>
       )}
 
       {/* Tool bar */}
       {projects.activeId && (
-        <div className="flex items-center gap-2 border-b bg-muted/40 px-4 py-1.5 text-xs">
+        <div className="flex items-center gap-2 border-b bg-muted/40 px-2 sm:px-4 py-1.5 text-xs overflow-x-auto whitespace-nowrap">
           <Toggle pressed={mode === "select"} onPressedChange={() => setMode("select")} size="sm" title="Select / move tool"><MousePointer2 className="h-3 w-3" /></Toggle>
           <Toggle pressed={mode === "dimension"} onPressedChange={() => setMode(mode === "dimension" ? "select" : "dimension")} size="sm" title="Dimension tool — click two points">
             <Ruler className="h-3 w-3" />
@@ -324,7 +405,7 @@ const Index = () => {
           <span className="w-10 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
           <Button size="sm" variant="ghost" onClick={() => setZoom((z) => Math.min(4, z * 1.25))} title="Zoom in"><ZoomIn className="h-3 w-3" /></Button>
           <Button size="sm" variant="ghost" onClick={() => setZoom(1)} title="Reset zoom"><Maximize2 className="h-3 w-3" /></Button>
-          <span className="ml-auto text-muted-foreground">
+          <span className="ml-auto hidden md:inline text-muted-foreground">
             {store.floor.props.length} props · {store.floor.walls.length} walls · {store.floor.rooms.length} rooms
           </span>
         </div>
@@ -332,8 +413,8 @@ const Index = () => {
 
       {/* Body */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Projects sidebar */}
-        {showSidebar && (
+        {/* Projects sidebar — desktop only */}
+        {!isMobile && showSidebar && (
           <aside className="w-56 shrink-0 border-r">
             <ProjectSidebar
               projects={projects.projects}
@@ -350,7 +431,7 @@ const Index = () => {
 
         {projects.activeId ? (
           <>
-            {showPropLibrary && (
+            {!isMobile && showPropLibrary && (
               <aside className="w-60 shrink-0 border-r bg-card flex flex-col">
                 <div className="flex-1 overflow-hidden">
                   <PropLibrary onAdd={store.addProp} />
@@ -380,13 +461,58 @@ const Index = () => {
                 toggleWallInSelection={toggleWallInSelection}
                 enclosedAreaPolygon={areaPolygon}
               />
-              {/* Cursor coords (bottom-right overlay) */}
-              <div className="pointer-events-none absolute bottom-1 right-2 rounded bg-background/80 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground shadow-sm">
+              {/* Cursor coords (bottom-right overlay) — hide on mobile to avoid overlap with FAB */}
+              <div className="pointer-events-none absolute bottom-1 right-2 hidden sm:block rounded bg-background/80 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground shadow-sm">
                 {cursor ? `${cursor.x.toFixed(2)} ft, ${cursor.y.toFixed(2)} ft` : "—"}
               </div>
+
+              {/* Mobile floating action bar — Furniture + Properties drawers */}
+              {isMobile && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full border bg-background/95 backdrop-blur px-2 py-1.5 shadow-lg">
+                  <Sheet open={mobilePropLibOpen} onOpenChange={setMobilePropLibOpen}>
+                    <SheetTrigger asChild>
+                      <Button size="sm" variant="ghost" className="rounded-full h-9 px-3">
+                        <Sofa className="mr-1.5 h-4 w-4" />Furniture
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="w-[85vw] max-w-sm p-0 flex flex-col">
+                      <SheetHeader className="px-4 py-3 border-b">
+                        <SheetTitle className="text-sm">Furniture</SheetTitle>
+                      </SheetHeader>
+                      <div className="flex-1 overflow-hidden">
+                        <PropLibrary onAdd={(type, defs) => { store.addProp(type, defs); setMobilePropLibOpen(false); }} />
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                  <div className="h-5 w-px bg-border" />
+                  <Sheet open={mobilePropsOpen} onOpenChange={setMobilePropsOpen}>
+                    <SheetTrigger asChild>
+                      <Button size="sm" variant="ghost" className="rounded-full h-9 px-3" disabled={!store.selection}>
+                        <Settings2 className="mr-1.5 h-4 w-4" />Properties
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="right" className="w-[90vw] max-w-sm p-0 flex flex-col">
+                      <SheetHeader className="px-4 py-3 border-b">
+                        <SheetTitle className="text-sm">Properties</SheetTitle>
+                      </SheetHeader>
+                      <div className="flex-1 overflow-hidden">
+                        <PropertiesPanel
+                          floor={store.floor}
+                          selection={store.selection}
+                          updateProp={store.updateProp}
+                          updateWall={store.updateWall}
+                          updateOpening={store.updateOpening}
+                          updateRoom={store.updateRoom}
+                          onDelete={() => { store.deleteSelection(); setMobilePropsOpen(false); }}
+                        />
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                </div>
+              )}
             </main>
 
-            {showPropsPanel && (
+            {!isMobile && showPropsPanel && (
               <aside className="w-72 shrink-0 border-l bg-card flex flex-col">
                 <div className="flex-1 overflow-hidden">
                   <PropertiesPanel

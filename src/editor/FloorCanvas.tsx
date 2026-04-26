@@ -30,6 +30,7 @@ interface Props {
 type DragState =
   | { kind: "prop_move"; id: string; startX: number; startY: number; origX: number; origY: number }
   | { kind: "prop_resize"; id: string; corner: "se" | "sw" | "ne" | "nw"; origW: number; origH: number; origX: number; origY: number; startX: number; startY: number }
+  | { kind: "prop_rotate"; id: string; cx: number; cy: number; startAngle: number; origRotation: number; shift: boolean }
   | { kind: "wall_endpoint"; id: string; end: 1 | 2; }
   | { kind: "wall_curve"; id: string }
   | { kind: "wall_move"; id: string; horizontal: boolean; startX: number; startY: number; origX1: number; origY1: number; origX2: number; origY2: number }
@@ -109,6 +110,14 @@ export const FloorCanvas: React.FC<Props> = ({
       if (ds.corner === "sw") { nw = Math.max(0.5, ds.origW - dx); nh = Math.max(0.5, ds.origH + dy); nx = ds.origX + (ds.origW - nw) / 2 + dx / 2; }
       if (ds.corner === "nw") { nw = Math.max(0.5, ds.origW - dx); nh = Math.max(0.5, ds.origH - dy); nx = ds.origX + (ds.origW - nw) / 2 + dx / 2; ny = ds.origY + (ds.origH - nh) / 2 + dy / 2; }
       updateProp(ds.id, { w: Math.round(nw * 4) / 4, h: Math.round(nh * 4) / 4, x: nx, y: ny });
+    } else if (ds.kind === "prop_rotate") {
+      const ang = Math.atan2(y - ds.cy, x - ds.cx) * 180 / Math.PI;
+      let next = ds.origRotation + (ang - ds.startAngle);
+      // Snap to 15° when Shift held
+      if (e.shiftKey) next = Math.round(next / 15) * 15;
+      // Normalize to [-180, 180]
+      next = ((next + 180) % 360 + 360) % 360 - 180;
+      updateProp(ds.id, { rotation: Math.round(next * 10) / 10 });
     } else if (ds.kind === "wall_endpoint") {
       const w = floor.walls.find((w) => w.id === ds.id);
       if (!w) return;
@@ -171,6 +180,17 @@ export const FloorCanvas: React.FC<Props> = ({
     e.stopPropagation();
     const { x, y } = toFt(e.clientX, e.clientY);
     dragRef.current = { kind: "prop_resize", id: p.id, corner, origW: p.w, origH: p.h, origX: p.x, origY: p.y, startX: x, startY: y };
+  };
+  const startRotate = (p: PropItem, e: React.PointerEvent) => {
+    e.stopPropagation();
+    setSelection({ kind: "prop", id: p.id });
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+    const { x, y } = toFt(e.clientX, e.clientY);
+    const startAngle = Math.atan2(y - p.y, x - p.x) * 180 / Math.PI;
+    dragRef.current = {
+      kind: "prop_rotate", id: p.id, cx: p.x, cy: p.y,
+      startAngle, origRotation: p.rotation || 0, shift: e.shiftKey,
+    };
   };
   const startWallEndpointDrag = (w: Wall, end: 1 | 2, e: React.PointerEvent) => {
     e.stopPropagation();
@@ -526,6 +546,28 @@ export const FloorCanvas: React.FC<Props> = ({
                           className="cursor-nwse-resize" />
                       );
                     })}
+                    {/* Rotation handle (PowerPoint-style) — sits above the box, hold Shift to snap to 15° */}
+                    {(() => {
+                      const handleY = -hPx / 2 - 22;
+                      return (
+                        <g style={{ pointerEvents: "auto" }}>
+                          <line x1={0} y1={-hPx / 2 - 2} x2={0} y2={handleY + 6}
+                            stroke="hsl(var(--selection))" strokeWidth={1} />
+                          <circle cx={0} cy={handleY} r={7}
+                            fill="hsl(var(--background))"
+                            stroke="hsl(var(--selection))" strokeWidth={2}
+                            onPointerDown={(e) => startRotate(p, e)}
+                            style={{ cursor: "grab" }}>
+                            <title>Drag to rotate (hold Shift to snap 15°)</title>
+                          </circle>
+                          {/* small curved arrow glyph inside the handle */}
+                          <path d={`M ${-3.5} ${handleY - 0.5} A 3.5 3.5 0 1 1 ${3.5} ${handleY - 0.5}`}
+                            fill="none" stroke="hsl(var(--selection))" strokeWidth={1.2} pointerEvents="none" />
+                          <path d={`M ${3.5} ${handleY - 2.2} L ${3.5} ${handleY + 0.8} L ${0.8} ${handleY - 0.5} Z`}
+                            fill="hsl(var(--selection))" pointerEvents="none" />
+                        </g>
+                      );
+                    })()}
                   </>
                 )}
               </g>

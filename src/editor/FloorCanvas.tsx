@@ -181,6 +181,17 @@ export const FloorCanvas: React.FC<Props> = ({
     const { x, y } = toFt(e.clientX, e.clientY);
     dragRef.current = { kind: "prop_resize", id: p.id, corner, origW: p.w, origH: p.h, origX: p.x, origY: p.y, startX: x, startY: y };
   };
+  const startRotate = (p: PropItem, e: React.PointerEvent) => {
+    e.stopPropagation();
+    setSelection({ kind: "prop", id: p.id });
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+    const { x, y } = toFt(e.clientX, e.clientY);
+    const startAngle = Math.atan2(y - p.y, x - p.x) * 180 / Math.PI;
+    dragRef.current = {
+      kind: "prop_rotate", id: p.id, cx: p.x, cy: p.y,
+      startAngle, origRotation: p.rotation || 0, shift: e.shiftKey,
+    };
+  };
   const startWallEndpointDrag = (w: Wall, end: 1 | 2, e: React.PointerEvent) => {
     e.stopPropagation();
     setSelection({ kind: "wall", id: w.id });

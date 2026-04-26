@@ -413,8 +413,8 @@ const Index = () => {
 
       {/* Body */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Projects sidebar */}
-        {showSidebar && (
+        {/* Projects sidebar — desktop only */}
+        {!isMobile && showSidebar && (
           <aside className="w-56 shrink-0 border-r">
             <ProjectSidebar
               projects={projects.projects}
@@ -431,7 +431,7 @@ const Index = () => {
 
         {projects.activeId ? (
           <>
-            {showPropLibrary && (
+            {!isMobile && showPropLibrary && (
               <aside className="w-60 shrink-0 border-r bg-card flex flex-col">
                 <div className="flex-1 overflow-hidden">
                   <PropLibrary onAdd={store.addProp} />
@@ -461,13 +461,58 @@ const Index = () => {
                 toggleWallInSelection={toggleWallInSelection}
                 enclosedAreaPolygon={areaPolygon}
               />
-              {/* Cursor coords (bottom-right overlay) */}
-              <div className="pointer-events-none absolute bottom-1 right-2 rounded bg-background/80 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground shadow-sm">
+              {/* Cursor coords (bottom-right overlay) — hide on mobile to avoid overlap with FAB */}
+              <div className="pointer-events-none absolute bottom-1 right-2 hidden sm:block rounded bg-background/80 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground shadow-sm">
                 {cursor ? `${cursor.x.toFixed(2)} ft, ${cursor.y.toFixed(2)} ft` : "—"}
               </div>
+
+              {/* Mobile floating action bar — Furniture + Properties drawers */}
+              {isMobile && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full border bg-background/95 backdrop-blur px-2 py-1.5 shadow-lg">
+                  <Sheet open={mobilePropLibOpen} onOpenChange={setMobilePropLibOpen}>
+                    <SheetTrigger asChild>
+                      <Button size="sm" variant="ghost" className="rounded-full h-9 px-3">
+                        <Sofa className="mr-1.5 h-4 w-4" />Furniture
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="w-[85vw] max-w-sm p-0 flex flex-col">
+                      <SheetHeader className="px-4 py-3 border-b">
+                        <SheetTitle className="text-sm">Furniture</SheetTitle>
+                      </SheetHeader>
+                      <div className="flex-1 overflow-hidden">
+                        <PropLibrary onAdd={(type, defs) => { store.addProp(type, defs); setMobilePropLibOpen(false); }} />
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                  <div className="h-5 w-px bg-border" />
+                  <Sheet open={mobilePropsOpen} onOpenChange={setMobilePropsOpen}>
+                    <SheetTrigger asChild>
+                      <Button size="sm" variant="ghost" className="rounded-full h-9 px-3" disabled={!store.selection}>
+                        <Settings2 className="mr-1.5 h-4 w-4" />Properties
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="right" className="w-[90vw] max-w-sm p-0 flex flex-col">
+                      <SheetHeader className="px-4 py-3 border-b">
+                        <SheetTitle className="text-sm">Properties</SheetTitle>
+                      </SheetHeader>
+                      <div className="flex-1 overflow-hidden">
+                        <PropertiesPanel
+                          floor={store.floor}
+                          selection={store.selection}
+                          updateProp={store.updateProp}
+                          updateWall={store.updateWall}
+                          updateOpening={store.updateOpening}
+                          updateRoom={store.updateRoom}
+                          onDelete={() => { store.deleteSelection(); setMobilePropsOpen(false); }}
+                        />
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                </div>
+              )}
             </main>
 
-            {showPropsPanel && (
+            {!isMobile && showPropsPanel && (
               <aside className="w-72 shrink-0 border-l bg-card flex flex-col">
                 <div className="flex-1 overflow-hidden">
                   <PropertiesPanel

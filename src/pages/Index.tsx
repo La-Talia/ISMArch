@@ -334,8 +334,8 @@ const Index = () => {
 
       {/* Floor tabs */}
       {projects.activeId && (
-        <div className="flex items-center gap-2 border-b bg-muted/30 px-4 py-1.5">
-          <Layers className="h-4 w-4 text-muted-foreground" />
+        <div className="flex items-center gap-2 border-b bg-muted/30 px-2 sm:px-4 py-1.5 overflow-x-auto">
+          <Layers className="h-4 w-4 text-muted-foreground shrink-0" />
           <Tabs value={store.activeFloor} onValueChange={(v) => store.setActiveFloor(v)}>
             <TabsList>
               {store.plan.floors.map((f) => (
@@ -356,7 +356,7 @@ const Index = () => {
                     <span
                       role="button"
                       onClick={(e) => { e.stopPropagation(); if (confirm(`Delete ${f.name}?`)) store.removeFloor(f.id); }}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-70 hover:opacity-100"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 opacity-60 sm:opacity-0 sm:group-hover:opacity-70 hover:opacity-100"
                     >
                       <X className="h-3 w-3" />
                     </span>
@@ -365,10 +365,10 @@ const Index = () => {
               ))}
             </TabsList>
           </Tabs>
-          <Button size="sm" variant="ghost" onClick={store.addFloor} title="Add floor (keeps exterior walls + stairs)">
-            <Plus className="mr-1 h-3 w-3" />Add Floor
+          <Button size="sm" variant="ghost" onClick={store.addFloor} title="Add floor (keeps exterior walls + stairs)" className="shrink-0">
+            <Plus className="h-3 w-3 sm:mr-1" /><span className="hidden sm:inline">Add Floor</span>
           </Button>
-          <span className="ml-auto text-xs text-muted-foreground">Double-click a tab to rename</span>
+          <span className="ml-auto hidden md:inline text-xs text-muted-foreground shrink-0">Double-click a tab to rename</span>
         </div>
       )}
 

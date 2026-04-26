@@ -30,6 +30,7 @@ interface Props {
 type DragState =
   | { kind: "prop_move"; id: string; startX: number; startY: number; origX: number; origY: number }
   | { kind: "prop_resize"; id: string; corner: "se" | "sw" | "ne" | "nw"; origW: number; origH: number; origX: number; origY: number; startX: number; startY: number }
+  | { kind: "prop_rotate"; id: string; cx: number; cy: number; startAngle: number; origRotation: number; shift: boolean }
   | { kind: "wall_endpoint"; id: string; end: 1 | 2; }
   | { kind: "wall_curve"; id: string }
   | { kind: "wall_move"; id: string; horizontal: boolean; startX: number; startY: number; origX1: number; origY1: number; origX2: number; origY2: number }

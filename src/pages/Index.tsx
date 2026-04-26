@@ -115,6 +115,60 @@ const Index = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, [store]);
 
+  // Pinch-to-zoom (touch) and Ctrl/Cmd + wheel zoom (trackpad/mouse)
+  React.useEffect(() => {
+    const el = canvasWrap.current;
+    if (!el) return;
+
+    const clampZoom = (z: number) => Math.min(4, Math.max(0.25, z));
+
+    // --- Wheel: Ctrl/Cmd + wheel (or trackpad pinch which arrives as ctrlKey+wheel) ---
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const factor = Math.exp(-e.deltaY * 0.0015);
+      setZoom((z) => clampZoom(z * factor));
+    };
+
+    // --- Touch: two-finger pinch ---
+    let pinchStartDist = 0;
+    let pinchStartZoom = 1;
+    const dist = (t: TouchList) => {
+      const dx = t[0].clientX - t[1].clientX;
+      const dy = t[0].clientY - t[1].clientY;
+      return Math.hypot(dx, dy);
+    };
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        pinchStartDist = dist(e.touches);
+        setZoom((z) => { pinchStartZoom = z; return z; });
+      }
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && pinchStartDist > 0) {
+        e.preventDefault();
+        const d = dist(e.touches);
+        setZoom(clampZoom(pinchStartZoom * (d / pinchStartDist)));
+      }
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) pinchStartDist = 0;
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    el.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, [projects.activeId]);
+
   const exportPNG = async () => {
     const node = document.getElementById("floorplan-svg");
     if (!node) return;

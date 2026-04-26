@@ -405,7 +405,7 @@ const Index = () => {
           <span className="w-10 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
           <Button size="sm" variant="ghost" onClick={() => setZoom((z) => Math.min(4, z * 1.25))} title="Zoom in"><ZoomIn className="h-3 w-3" /></Button>
           <Button size="sm" variant="ghost" onClick={() => setZoom(1)} title="Reset zoom"><Maximize2 className="h-3 w-3" /></Button>
-          <span className="ml-auto text-muted-foreground">
+          <span className="ml-auto hidden md:inline text-muted-foreground">
             {store.floor.props.length} props · {store.floor.walls.length} walls · {store.floor.rooms.length} rooms
           </span>
         </div>

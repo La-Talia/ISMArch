@@ -14,6 +14,9 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Menu, FolderOpen, Sofa, Settings2 } from "lucide-react";
 import { usePlanStore } from "@/editor/usePlanStore";
 import { useProjectsStore, planFromPlot, makeDemoPlan } from "@/editor/projectsStore";
 import { FloorCanvas } from "@/editor/FloorCanvas";

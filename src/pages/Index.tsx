@@ -374,7 +374,7 @@ const Index = () => {
 
       {/* Tool bar */}
       {projects.activeId && (
-        <div className="flex items-center gap-2 border-b bg-muted/40 px-4 py-1.5 text-xs">
+        <div className="flex items-center gap-2 border-b bg-muted/40 px-2 sm:px-4 py-1.5 text-xs overflow-x-auto whitespace-nowrap">
           <Toggle pressed={mode === "select"} onPressedChange={() => setMode("select")} size="sm" title="Select / move tool"><MousePointer2 className="h-3 w-3" /></Toggle>
           <Toggle pressed={mode === "dimension"} onPressedChange={() => setMode(mode === "dimension" ? "select" : "dimension")} size="sm" title="Dimension tool — click two points">
             <Ruler className="h-3 w-3" />

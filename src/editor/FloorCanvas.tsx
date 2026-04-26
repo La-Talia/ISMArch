@@ -546,6 +546,28 @@ export const FloorCanvas: React.FC<Props> = ({
                           className="cursor-nwse-resize" />
                       );
                     })}
+                    {/* Rotation handle (PowerPoint-style) — sits above the box, hold Shift to snap to 15° */}
+                    {(() => {
+                      const handleY = -hPx / 2 - 22;
+                      return (
+                        <g style={{ pointerEvents: "auto" }}>
+                          <line x1={0} y1={-hPx / 2 - 2} x2={0} y2={handleY + 6}
+                            stroke="hsl(var(--selection))" strokeWidth={1} />
+                          <circle cx={0} cy={handleY} r={7}
+                            fill="hsl(var(--background))"
+                            stroke="hsl(var(--selection))" strokeWidth={2}
+                            onPointerDown={(e) => startRotate(p, e)}
+                            style={{ cursor: "grab" }}>
+                            <title>Drag to rotate (hold Shift to snap 15°)</title>
+                          </circle>
+                          {/* small curved arrow glyph inside the handle */}
+                          <path d={`M ${-3.5} ${handleY - 0.5} A 3.5 3.5 0 1 1 ${3.5} ${handleY - 0.5}`}
+                            fill="none" stroke="hsl(var(--selection))" strokeWidth={1.2} pointerEvents="none" />
+                          <path d={`M ${3.5} ${handleY - 2.2} L ${3.5} ${handleY + 0.8} L ${0.8} ${handleY - 0.5} Z`}
+                            fill="hsl(var(--selection))" pointerEvents="none" />
+                        </g>
+                      );
+                    })()}
                   </>
                 )}
               </g>

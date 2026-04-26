@@ -110,6 +110,14 @@ export const FloorCanvas: React.FC<Props> = ({
       if (ds.corner === "sw") { nw = Math.max(0.5, ds.origW - dx); nh = Math.max(0.5, ds.origH + dy); nx = ds.origX + (ds.origW - nw) / 2 + dx / 2; }
       if (ds.corner === "nw") { nw = Math.max(0.5, ds.origW - dx); nh = Math.max(0.5, ds.origH - dy); nx = ds.origX + (ds.origW - nw) / 2 + dx / 2; ny = ds.origY + (ds.origH - nh) / 2 + dy / 2; }
       updateProp(ds.id, { w: Math.round(nw * 4) / 4, h: Math.round(nh * 4) / 4, x: nx, y: ny });
+    } else if (ds.kind === "prop_rotate") {
+      const ang = Math.atan2(y - ds.cy, x - ds.cx) * 180 / Math.PI;
+      let next = ds.origRotation + (ang - ds.startAngle);
+      // Snap to 15° when Shift held
+      if (e.shiftKey) next = Math.round(next / 15) * 15;
+      // Normalize to [-180, 180]
+      next = ((next + 180) % 360 + 360) % 360 - 180;
+      updateProp(ds.id, { rotation: Math.round(next * 10) / 10 });
     } else if (ds.kind === "wall_endpoint") {
       const w = floor.walls.find((w) => w.id === ds.id);
       if (!w) return;

@@ -93,7 +93,7 @@ export const FloorCanvas: React.FC<Props> = ({
     const ft = toFt(e.clientX, e.clientY);
     onCursor?.(ft);
     if (mode === "dimension") {
-      setHoverPt(snapPoint(ft));
+      setHoverPt(snapPoint(ft, { report: true }));
     }
     const ds = dragRef.current;
     if (!ds) return;

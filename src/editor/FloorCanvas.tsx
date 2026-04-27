@@ -2,6 +2,7 @@ import React from "react";
 import { PROP_CATALOG } from "./propCatalog";
 import { PX_PER_FT } from "./types";
 import type { CustomDimension, FloorData, Opening, PropItem, Wall } from "./types";
+import { smartSnap, type SnapKind } from "./geom";
 
 export type CanvasMode = "select" | "dimension";
 
@@ -51,6 +52,7 @@ export const FloorCanvas: React.FC<Props> = ({
   const dragRef = React.useRef<DragState | null>(null);
   const [dimStart, setDimStart] = React.useState<{ x: number; y: number } | null>(null);
   const [hoverPt, setHoverPt] = React.useState<{ x: number; y: number } | null>(null);
+  const [snapHint, setSnapHint] = React.useState<{ x: number; y: number; kind: SnapKind } | null>(null);
 
   const toFt = (clientX: number, clientY: number) => {
     const svg = svgRef.current!;
@@ -62,29 +64,26 @@ export const FloorCanvas: React.FC<Props> = ({
     return { x: local.x / PX_PER_FT - padding, y: local.y / PX_PER_FT - padding };
   };
 
-  // Snap a point to nearest wall endpoint or grid (1ft) when snap is enabled
-  const snapPoint = (p: { x: number; y: number }) => {
-    if (!snap) return p;
-    const candidates: { x: number; y: number }[] = [];
-    floor.walls.forEach((w) => {
-      candidates.push({ x: w.x1, y: w.y1 });
-      candidates.push({ x: w.x2, y: w.y2 });
-    });
-    floor.rooms.forEach((r) => {
-      candidates.push({ x: r.x, y: r.y }, { x: r.x + r.w, y: r.y },
-        { x: r.x, y: r.y + r.h }, { x: r.x + r.w, y: r.y + r.h });
-    });
-    let best = p;
-    let bestD = 0.6; // ft snap radius
-    for (const c of candidates) {
-      const d = Math.hypot(c.x - p.x, c.y - p.y);
-      if (d < bestD) { bestD = d; best = c; }
+  // Snap a point using multi-priority snapper. Reports a visual hint for non-grid snaps.
+  const snapPoint = (
+    p: { x: number; y: number },
+    opts: { ignoreWallId?: string; axisRef?: { x: number; y: number } | null; report?: boolean } = {},
+  ) => {
+    if (!snap) {
+      if (opts.report) setSnapHint(null);
+      return p;
     }
-    if (best === p) {
-      // grid snap (0.5 ft)
-      best = { x: Math.round(p.x * 2) / 2, y: Math.round(p.y * 2) / 2 };
+    const r = smartSnap(p, floor.walls, {
+      ignoreWallId: opts.ignoreWallId,
+      axisRef: opts.axisRef ?? null,
+      radius: 0.6,
+      gridStep: 0.25,
+    });
+    if (opts.report) {
+      if (r.kind && r.kind !== "grid") setSnapHint({ x: r.x, y: r.y, kind: r.kind });
+      else setSnapHint(null);
     }
-    return best;
+    return { x: r.x, y: r.y };
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -94,7 +93,7 @@ export const FloorCanvas: React.FC<Props> = ({
     const ft = toFt(e.clientX, e.clientY);
     onCursor?.(ft);
     if (mode === "dimension") {
-      setHoverPt(snapPoint(ft));
+      setHoverPt(snapPoint(ft, { report: true }));
     }
     const ds = dragRef.current;
     if (!ds) return;
@@ -121,24 +120,34 @@ export const FloorCanvas: React.FC<Props> = ({
     } else if (ds.kind === "wall_endpoint") {
       const w = floor.walls.find((w) => w.id === ds.id);
       if (!w) return;
-      const sn = (v: number) => Math.round(v * 4) / 4;
+      const otherEnd = ds.end === 1 ? { x: w.x2, y: w.y2 } : { x: w.x1, y: w.y1 };
+      // Smart-snap with axis reference = the *fixed* end, so we get H/V alignment for free.
+      const snapped = snapPoint({ x, y }, { ignoreWallId: w.id, axisRef: otherEnd, report: true });
       const horizontal = w.y1 === w.y2;
-      if (ds.end === 1) {
-        if (horizontal) updateWall(w.id, { x1: sn(x) });
-        else updateWall(w.id, { y1: sn(y) });
+      const vertical = w.x1 === w.x2;
+      if (horizontal && Math.abs(snapped.y - w.y1) < 0.4) {
+        // Maintain horizontality if the snap target is essentially level
+        if (ds.end === 1) updateWall(w.id, { x1: snapped.x });
+        else updateWall(w.id, { x2: snapped.x });
+      } else if (vertical && Math.abs(snapped.x - w.x1) < 0.4) {
+        if (ds.end === 1) updateWall(w.id, { y1: snapped.y });
+        else updateWall(w.id, { y2: snapped.y });
       } else {
-        if (horizontal) updateWall(w.id, { x2: sn(x) });
-        else updateWall(w.id, { y2: sn(y) });
+        // Free movement (angled walls or breaking axis lock)
+        if (ds.end === 1) updateWall(w.id, { x1: snapped.x, y1: snapped.y });
+        else updateWall(w.id, { x2: snapped.x, y2: snapped.y });
       }
     } else if (ds.kind === "wall_move") {
-      const sn = (v: number) => Math.round(v * 4) / 4;
+      // Snap perpendicular position to nearby parallel wall lines / endpoints.
+      const target = ds.horizontal
+        ? { x: (ds.origX1 + ds.origX2) / 2, y: ds.origY1 + (y - ds.startY) }
+        : { x: ds.origX1 + (x - ds.startX), y: (ds.origY1 + ds.origY2) / 2 };
+      const snapped = snapPoint(target, { ignoreWallId: ds.id, report: true });
       if (ds.horizontal) {
-        const dy = y - ds.startY;
-        const ny = sn(ds.origY1 + dy);
+        const ny = Math.round(snapped.y * 4) / 4;
         updateWall(ds.id, { y1: ny, y2: ny });
       } else {
-        const dx = x - ds.startX;
-        const nx = sn(ds.origX1 + dx);
+        const nx = Math.round(snapped.x * 4) / 4;
         updateWall(ds.id, { x1: nx, x2: nx });
       }
     } else if (ds.kind === "wall_curve") {
@@ -167,8 +176,8 @@ export const FloorCanvas: React.FC<Props> = ({
       updateCustomDimension(ds.id, { offset: Math.round((ds.origOffset + proj) * 100) / 100 });
     }
   };
-  const onPointerUp = () => { dragRef.current = null; };
-  const onPointerLeave = () => { onCursor?.(null); setHoverPt(null); };
+  const onPointerUp = () => { dragRef.current = null; setSnapHint(null); };
+  const onPointerLeave = () => { onCursor?.(null); setHoverPt(null); setSnapHint(null); };
 
   const startPropDrag = (p: PropItem, e: React.PointerEvent) => {
     e.stopPropagation();
@@ -624,7 +633,7 @@ export const FloorCanvas: React.FC<Props> = ({
                 <text x={tx} y={ty} textAnchor="middle" dominantBaseline="middle"
                   fontSize={10} fontFamily="ui-sans-serif, system-ui"
                   fill={stroke} className="font-medium" pointerEvents="none">
-                  {len.toFixed(2)}'
+                  {d.label && d.label.trim() !== "" ? d.label : `${len.toFixed(2)}'`}
                 </text>
                 {isSel && (
                   <circle cx={ftToPx(bx)} cy={ftToPx(by)} r={4} fill="hsl(var(--selection))"
@@ -661,16 +670,55 @@ export const FloorCanvas: React.FC<Props> = ({
           </g>
         )}
 
-        {/* Built-in dimension chains */}
-        {showDimensions && (
+        {/* Snap indicator while dragging */}
+        {snapHint && (
+          <g pointerEvents="none">
+            <circle cx={ftToPx(snapHint.x)} cy={ftToPx(snapHint.y)} r={7}
+              fill="none" stroke="hsl(var(--selection))" strokeWidth={1.5} />
+            {snapHint.kind === "endpoint" && (
+              <rect x={ftToPx(snapHint.x) - 4} y={ftToPx(snapHint.y) - 4} width={8} height={8}
+                fill="hsl(var(--selection))" />
+            )}
+            {snapHint.kind === "edge" && (
+              <circle cx={ftToPx(snapHint.x)} cy={ftToPx(snapHint.y)} r={3}
+                fill="hsl(var(--selection))" />
+            )}
+            {snapHint.kind === "axis" && (
+              <line x1={ftToPx(snapHint.x) - 8} y1={ftToPx(snapHint.y)}
+                x2={ftToPx(snapHint.x) + 8} y2={ftToPx(snapHint.y)}
+                stroke="hsl(var(--selection))" strokeWidth={1.5} strokeDasharray="2 2" />
+            )}
+          </g>
+        )}
+        {showDimensions && (() => {
+          // Wall-thickness-aware outer extents.
+          // For horizontal chain (top): find leftmost/rightmost vertical perimeter walls, extend by ±thickness/2.
+          const verticalWalls = floor.walls.filter((w) => w.x1 === w.x2 && w.y1 !== w.y2);
+          const horizontalWalls = floor.walls.filter((w) => w.y1 === w.y2 && w.x1 !== w.x2);
+          const xMinWall = verticalWalls.reduce<Wall | null>((m, w) => !m || w.x1 < m.x1 ? w : m, null);
+          const xMaxWall = verticalWalls.reduce<Wall | null>((m, w) => !m || w.x1 > m.x1 ? w : m, null);
+          const yMinWall = horizontalWalls.reduce<Wall | null>((m, w) => !m || w.y1 < m.y1 ? w : m, null);
+          const yMaxWall = horizontalWalls.reduce<Wall | null>((m, w) => !m || w.y1 > m.y1 ? w : m, null);
+          const xLeft = xMinWall ? xMinWall.x1 - xMinWall.thickness / 2 : floor.bounds.x;
+          const xRight = xMaxWall ? xMaxWall.x1 + xMaxWall.thickness / 2 : floor.bounds.x + floor.bounds.w;
+          const yTop = yMinWall ? yMinWall.y1 - yMinWall.thickness / 2 : floor.bounds.y;
+          const yBot = yMaxWall ? yMaxWall.y1 + yMaxWall.thickness / 2 : floor.bounds.y + floor.bounds.h;
+
+          const xTicks = Array.from(new Set(
+            horizontalWalls.flatMap((w) => [w.x1, w.x2]).concat([xLeft, xRight]),
+          )).sort((a, b) => a - b);
+          const yTicks = Array.from(new Set(
+            verticalWalls.flatMap((w) => [w.y1, w.y2]).concat([yTop, yBot]),
+          )).sort((a, b) => a - b);
+
+          return (
           <g>
             <DimChain
               orientation="horizontal"
-              from={floor.bounds.x} to={floor.bounds.x + floor.bounds.w}
+              from={xLeft} to={xRight}
               along={floor.bounds.y - 3}
               ftToPx={ftToPx}
-              ticks={Array.from(new Set(floor.walls.filter(w => w.y1 === w.y2 && w.x1 !== w.x2).flatMap(w => [w.x1, w.x2])
-                .concat([floor.bounds.x, floor.bounds.x + floor.bounds.w]))).sort((a, b) => a - b)}
+              ticks={xTicks}
               onEditSegment={(a, b) => {
                 const cur = Math.abs(b - a);
                 const input = window.prompt(`Segment length (ft). Current: ${cur.toFixed(2)}'`, cur.toFixed(2));
@@ -689,11 +737,10 @@ export const FloorCanvas: React.FC<Props> = ({
             />
             <DimChain
               orientation="vertical"
-              from={floor.bounds.y} to={floor.bounds.y + floor.bounds.h}
+              from={yTop} to={yBot}
               along={floor.bounds.x + floor.bounds.w + 3}
               ftToPx={ftToPx}
-              ticks={Array.from(new Set(floor.walls.filter(w => w.x1 === w.x2 && w.y1 !== w.y2).flatMap(w => [w.y1, w.y2])
-                .concat([floor.bounds.y, floor.bounds.y + floor.bounds.h]))).sort((a, b) => a - b)}
+              ticks={yTicks}
               onEditSegment={(a, b) => {
                 const cur = Math.abs(b - a);
                 const input = window.prompt(`Segment length (ft). Current: ${cur.toFixed(2)}'`, cur.toFixed(2));
@@ -711,7 +758,8 @@ export const FloorCanvas: React.FC<Props> = ({
               }}
             />
           </g>
-        )}
+          );
+        })()}
       </svg>
     </div>
   );

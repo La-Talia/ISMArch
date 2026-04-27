@@ -238,6 +238,36 @@ export const PropertiesPanel: React.FC<Props> = ({
       "Room",
     );
   }
+  if (selection.kind === "dimension") {
+    const d = (floor.customDimensions || []).find((d) => d.id === selection.id);
+    if (!d) return null;
+    const len = Math.hypot(d.x2 - d.x1, d.y2 - d.y1);
+    return wrap(
+      <>
+        <Field label={`Measured length: ${len.toFixed(3)} ft`}><div /></Field>
+        <Field label="Label override (blank = auto)">
+          <Input
+            value={d.label || ""}
+            placeholder={`${len.toFixed(2)}'`}
+            onChange={(e) => updateCustomDimension?.(d.id, { label: e.target.value })}
+          />
+        </Field>
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="X1"><NumIn v={d.x1} onChange={(v) => updateCustomDimension?.(d.id, { x1: v })} /></Field>
+          <Field label="Y1"><NumIn v={d.y1} onChange={(v) => updateCustomDimension?.(d.id, { y1: v })} /></Field>
+          <Field label="X2"><NumIn v={d.x2} onChange={(v) => updateCustomDimension?.(d.id, { x2: v })} /></Field>
+          <Field label="Y2"><NumIn v={d.y2} onChange={(v) => updateCustomDimension?.(d.id, { y2: v })} /></Field>
+        </div>
+        <Field label="Offset (ft)">
+          <NumIn v={d.offset} onChange={(v) => updateCustomDimension?.(d.id, { offset: v })} />
+        </Field>
+        <p className="text-[11px] text-muted-foreground">
+          Tip: drag the dimension line perpendicular to reposition it. Wall thickness is included automatically when you click endpoints on a wall edge.
+        </p>
+      </>,
+      "Dimension",
+    );
+  }
   return null;
 };
 

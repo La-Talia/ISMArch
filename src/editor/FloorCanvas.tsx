@@ -633,7 +633,7 @@ export const FloorCanvas: React.FC<Props> = ({
                 <text x={tx} y={ty} textAnchor="middle" dominantBaseline="middle"
                   fontSize={10} fontFamily="ui-sans-serif, system-ui"
                   fill={stroke} className="font-medium" pointerEvents="none">
-                  {len.toFixed(2)}'
+                  {d.label && d.label.trim() !== "" ? d.label : `${len.toFixed(2)}'`}
                 </text>
                 {isSel && (
                   <circle cx={ftToPx(bx)} cy={ftToPx(by)} r={4} fill="hsl(var(--selection))"

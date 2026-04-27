@@ -468,6 +468,9 @@ const Index = () => {
           <Button size="sm" variant="ghost" onClick={() => addOpening("door")}><DoorOpen className="mr-1 h-3 w-3" />Door</Button>
           <Button size="sm" variant="ghost" onClick={() => addOpening("window")}><AppWindow className="mr-1 h-3 w-3" />Window</Button>
           <Button size="sm" variant="ghost" onClick={addRoom}><Plus className="mr-1 h-3 w-3" />Room</Button>
+          <Button size="sm" variant="ghost" onClick={autoDetectRooms} title="Auto-detect all rooms enclosed by walls">
+            <Square className="mr-1 h-3 w-3" />Auto Rooms
+          </Button>
           <div className="mx-1 h-4 w-px bg-border" />
           <Button size="sm" variant="ghost" onClick={computeArea} title="Shift+click walls then compute the area they enclose">
             <Square className="mr-1 h-3 w-3" />Area

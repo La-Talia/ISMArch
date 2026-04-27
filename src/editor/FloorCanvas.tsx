@@ -52,6 +52,7 @@ export const FloorCanvas: React.FC<Props> = ({
   const dragRef = React.useRef<DragState | null>(null);
   const [dimStart, setDimStart] = React.useState<{ x: number; y: number } | null>(null);
   const [hoverPt, setHoverPt] = React.useState<{ x: number; y: number } | null>(null);
+  const [snapHint, setSnapHint] = React.useState<{ x: number; y: number; kind: SnapKind } | null>(null);
 
   const toFt = (clientX: number, clientY: number) => {
     const svg = svgRef.current!;

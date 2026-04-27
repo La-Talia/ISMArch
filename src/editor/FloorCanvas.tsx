@@ -176,8 +176,8 @@ export const FloorCanvas: React.FC<Props> = ({
       updateCustomDimension(ds.id, { offset: Math.round((ds.origOffset + proj) * 100) / 100 });
     }
   };
-  const onPointerUp = () => { dragRef.current = null; };
-  const onPointerLeave = () => { onCursor?.(null); setHoverPt(null); };
+  const onPointerUp = () => { dragRef.current = null; setSnapHint(null); };
+  const onPointerLeave = () => { onCursor?.(null); setHoverPt(null); setSnapHint(null); };
 
   const startPropDrag = (p: PropItem, e: React.PointerEvent) => {
     e.stopPropagation();

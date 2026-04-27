@@ -64,29 +64,26 @@ export const FloorCanvas: React.FC<Props> = ({
     return { x: local.x / PX_PER_FT - padding, y: local.y / PX_PER_FT - padding };
   };
 
-  // Snap a point to nearest wall endpoint or grid (1ft) when snap is enabled
-  const snapPoint = (p: { x: number; y: number }) => {
-    if (!snap) return p;
-    const candidates: { x: number; y: number }[] = [];
-    floor.walls.forEach((w) => {
-      candidates.push({ x: w.x1, y: w.y1 });
-      candidates.push({ x: w.x2, y: w.y2 });
-    });
-    floor.rooms.forEach((r) => {
-      candidates.push({ x: r.x, y: r.y }, { x: r.x + r.w, y: r.y },
-        { x: r.x, y: r.y + r.h }, { x: r.x + r.w, y: r.y + r.h });
-    });
-    let best = p;
-    let bestD = 0.6; // ft snap radius
-    for (const c of candidates) {
-      const d = Math.hypot(c.x - p.x, c.y - p.y);
-      if (d < bestD) { bestD = d; best = c; }
+  // Snap a point using multi-priority snapper. Reports a visual hint for non-grid snaps.
+  const snapPoint = (
+    p: { x: number; y: number },
+    opts: { ignoreWallId?: string; axisRef?: { x: number; y: number } | null; report?: boolean } = {},
+  ) => {
+    if (!snap) {
+      if (opts.report) setSnapHint(null);
+      return p;
     }
-    if (best === p) {
-      // grid snap (0.5 ft)
-      best = { x: Math.round(p.x * 2) / 2, y: Math.round(p.y * 2) / 2 };
+    const r = smartSnap(p, floor.walls, {
+      ignoreWallId: opts.ignoreWallId,
+      axisRef: opts.axisRef ?? null,
+      radius: 0.6,
+      gridStep: 0.25,
+    });
+    if (opts.report) {
+      if (r.kind && r.kind !== "grid") setSnapHint({ x: r.x, y: r.y, kind: r.kind });
+      else setSnapHint(null);
     }
-    return best;
+    return { x: r.x, y: r.y };
   };
 
   const onPointerDown = (e: React.PointerEvent) => {

@@ -2,6 +2,7 @@ import React from "react";
 import { PROP_CATALOG } from "./propCatalog";
 import { PX_PER_FT } from "./types";
 import type { CustomDimension, FloorData, Opening, PropItem, Wall } from "./types";
+import { smartSnap, type SnapKind } from "./geom";
 
 export type CanvasMode = "select" | "dimension";
 

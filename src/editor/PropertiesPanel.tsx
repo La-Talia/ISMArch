@@ -1,5 +1,5 @@
 import React from "react";
-import type { FloorData, Opening, PropItem, Room, Wall } from "./types";
+import type { CustomDimension, FloorData, Opening, PropItem, Room, Wall } from "./types";
 import { PROP_CATALOG } from "./propCatalog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,11 +13,12 @@ interface Props {
   updateWall: (id: string, patch: Partial<Wall>) => void;
   updateOpening: (id: string, patch: Partial<Opening>) => void;
   updateRoom: (id: string, patch: Partial<Room>) => void;
+  updateCustomDimension?: (id: string, patch: Partial<CustomDimension>) => void;
   onDelete: () => void;
 }
 
 export const PropertiesPanel: React.FC<Props> = ({
-  floor, selection, updateProp, updateWall, updateOpening, updateRoom, onDelete,
+  floor, selection, updateProp, updateWall, updateOpening, updateRoom, updateCustomDimension, onDelete,
 }) => {
   if (!selection) {
     return (

@@ -86,6 +86,33 @@ const Index = () => {
     setSelectedWallIds([]); setAreaPolygon(null); setAreaValue(null);
   };
 
+  const autoDetectRooms = () => {
+    const detected = detectAllRooms(store.floor.walls);
+    if (detected.length === 0) {
+      toast.error("No enclosed rooms detected. Make sure walls form closed loops.");
+      return;
+    }
+    // Skip rooms that already roughly match an existing room rect
+    const existing = store.floor.rooms;
+    let created = 0;
+    detected.forEach((d, i) => {
+      const b = polygonBounds(d.polygon);
+      const dup = existing.find((r) =>
+        Math.abs(r.x - b.x) < 1 && Math.abs(r.y - b.y) < 1 &&
+        Math.abs(r.w - b.w) < 1 && Math.abs(r.h - b.h) < 1,
+      );
+      if (dup) return;
+      store.addRoom({
+        name: `Room ${existing.length + created + 1}`,
+        x: Math.round(b.x * 4) / 4, y: Math.round(b.y * 4) / 4,
+        w: Math.round(b.w * 4) / 4, h: Math.round(b.h * 4) / 4,
+      });
+      created++;
+    });
+    if (created === 0) toast(`${detected.length} room(s) detected — all already exist.`);
+    else toast.success(`Detected ${detected.length} room(s), added ${created} new.`);
+  };
+
   const handleExportDXF = (includeFurniture: boolean) => {
     if (!projects.activeId) return;
     try {

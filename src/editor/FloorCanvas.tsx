@@ -670,7 +670,26 @@ export const FloorCanvas: React.FC<Props> = ({
           </g>
         )}
 
-        {/* Built-in dimension chains */}
+        {/* Snap indicator while dragging */}
+        {snapHint && (
+          <g pointerEvents="none">
+            <circle cx={ftToPx(snapHint.x)} cy={ftToPx(snapHint.y)} r={7}
+              fill="none" stroke="hsl(var(--selection))" strokeWidth={1.5} />
+            {snapHint.kind === "endpoint" && (
+              <rect x={ftToPx(snapHint.x) - 4} y={ftToPx(snapHint.y) - 4} width={8} height={8}
+                fill="hsl(var(--selection))" />
+            )}
+            {snapHint.kind === "edge" && (
+              <circle cx={ftToPx(snapHint.x)} cy={ftToPx(snapHint.y)} r={3}
+                fill="hsl(var(--selection))" />
+            )}
+            {snapHint.kind === "axis" && (
+              <line x1={ftToPx(snapHint.x) - 8} y1={ftToPx(snapHint.y)}
+                x2={ftToPx(snapHint.x) + 8} y2={ftToPx(snapHint.y)}
+                stroke="hsl(var(--selection))" strokeWidth={1.5} strokeDasharray="2 2" />
+            )}
+          </g>
+        )}
         {showDimensions && (
           <g>
             <DimChain

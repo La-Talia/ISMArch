@@ -690,15 +690,35 @@ export const FloorCanvas: React.FC<Props> = ({
             )}
           </g>
         )}
-        {showDimensions && (
+        {showDimensions && (() => {
+          // Wall-thickness-aware outer extents.
+          // For horizontal chain (top): find leftmost/rightmost vertical perimeter walls, extend by ±thickness/2.
+          const verticalWalls = floor.walls.filter((w) => w.x1 === w.x2 && w.y1 !== w.y2);
+          const horizontalWalls = floor.walls.filter((w) => w.y1 === w.y2 && w.x1 !== w.x2);
+          const xMinWall = verticalWalls.reduce<Wall | null>((m, w) => !m || w.x1 < m.x1 ? w : m, null);
+          const xMaxWall = verticalWalls.reduce<Wall | null>((m, w) => !m || w.x1 > m.x1 ? w : m, null);
+          const yMinWall = horizontalWalls.reduce<Wall | null>((m, w) => !m || w.y1 < m.y1 ? w : m, null);
+          const yMaxWall = horizontalWalls.reduce<Wall | null>((m, w) => !m || w.y1 > m.y1 ? w : m, null);
+          const xLeft = xMinWall ? xMinWall.x1 - xMinWall.thickness / 2 : floor.bounds.x;
+          const xRight = xMaxWall ? xMaxWall.x1 + xMaxWall.thickness / 2 : floor.bounds.x + floor.bounds.w;
+          const yTop = yMinWall ? yMinWall.y1 - yMinWall.thickness / 2 : floor.bounds.y;
+          const yBot = yMaxWall ? yMaxWall.y1 + yMaxWall.thickness / 2 : floor.bounds.y + floor.bounds.h;
+
+          const xTicks = Array.from(new Set(
+            horizontalWalls.flatMap((w) => [w.x1, w.x2]).concat([xLeft, xRight]),
+          )).sort((a, b) => a - b);
+          const yTicks = Array.from(new Set(
+            verticalWalls.flatMap((w) => [w.y1, w.y2]).concat([yTop, yBot]),
+          )).sort((a, b) => a - b);
+
+          return (
           <g>
             <DimChain
               orientation="horizontal"
-              from={floor.bounds.x} to={floor.bounds.x + floor.bounds.w}
+              from={xLeft} to={xRight}
               along={floor.bounds.y - 3}
               ftToPx={ftToPx}
-              ticks={Array.from(new Set(floor.walls.filter(w => w.y1 === w.y2 && w.x1 !== w.x2).flatMap(w => [w.x1, w.x2])
-                .concat([floor.bounds.x, floor.bounds.x + floor.bounds.w]))).sort((a, b) => a - b)}
+              ticks={xTicks}
               onEditSegment={(a, b) => {
                 const cur = Math.abs(b - a);
                 const input = window.prompt(`Segment length (ft). Current: ${cur.toFixed(2)}'`, cur.toFixed(2));
@@ -717,11 +737,10 @@ export const FloorCanvas: React.FC<Props> = ({
             />
             <DimChain
               orientation="vertical"
-              from={floor.bounds.y} to={floor.bounds.y + floor.bounds.h}
+              from={yTop} to={yBot}
               along={floor.bounds.x + floor.bounds.w + 3}
               ftToPx={ftToPx}
-              ticks={Array.from(new Set(floor.walls.filter(w => w.x1 === w.x2 && w.y1 !== w.y2).flatMap(w => [w.y1, w.y2])
-                .concat([floor.bounds.y, floor.bounds.y + floor.bounds.h]))).sort((a, b) => a - b)}
+              ticks={yTicks}
               onEditSegment={(a, b) => {
                 const cur = Math.abs(b - a);
                 const input = window.prompt(`Segment length (ft). Current: ${cur.toFixed(2)}'`, cur.toFixed(2));
@@ -739,7 +758,8 @@ export const FloorCanvas: React.FC<Props> = ({
               }}
             />
           </g>
-        )}
+          );
+        })()}
       </svg>
     </div>
   );

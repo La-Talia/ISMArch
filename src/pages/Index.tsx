@@ -607,6 +607,7 @@ const Index = () => {
                     updateWall={store.updateWall}
                     updateOpening={store.updateOpening}
                     updateRoom={store.updateRoom}
+                    updateCustomDimension={store.updateCustomDimension}
                     onDelete={store.deleteSelection}
                   />
                 </div>

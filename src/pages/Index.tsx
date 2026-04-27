@@ -26,7 +26,7 @@ import { ProjectSidebar } from "@/editor/ProjectSidebar";
 import { PlotSketcher } from "@/editor/PlotSketcher";
 import { exportProject, pickArchraxFile } from "@/editor/importExport";
 import { exportDXF } from "@/editor/dxfExport";
-import { chainWallsToPolygon, polygonArea } from "@/editor/geom";
+import { chainWallsToPolygon, polygonArea, detectAllRooms, polygonBounds } from "@/editor/geom";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 

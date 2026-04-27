@@ -120,24 +120,34 @@ export const FloorCanvas: React.FC<Props> = ({
     } else if (ds.kind === "wall_endpoint") {
       const w = floor.walls.find((w) => w.id === ds.id);
       if (!w) return;
-      const sn = (v: number) => Math.round(v * 4) / 4;
+      const otherEnd = ds.end === 1 ? { x: w.x2, y: w.y2 } : { x: w.x1, y: w.y1 };
+      // Smart-snap with axis reference = the *fixed* end, so we get H/V alignment for free.
+      const snapped = snapPoint({ x, y }, { ignoreWallId: w.id, axisRef: otherEnd, report: true });
       const horizontal = w.y1 === w.y2;
-      if (ds.end === 1) {
-        if (horizontal) updateWall(w.id, { x1: sn(x) });
-        else updateWall(w.id, { y1: sn(y) });
+      const vertical = w.x1 === w.x2;
+      if (horizontal && Math.abs(snapped.y - w.y1) < 0.4) {
+        // Maintain horizontality if the snap target is essentially level
+        if (ds.end === 1) updateWall(w.id, { x1: snapped.x });
+        else updateWall(w.id, { x2: snapped.x });
+      } else if (vertical && Math.abs(snapped.x - w.x1) < 0.4) {
+        if (ds.end === 1) updateWall(w.id, { y1: snapped.y });
+        else updateWall(w.id, { y2: snapped.y });
       } else {
-        if (horizontal) updateWall(w.id, { x2: sn(x) });
-        else updateWall(w.id, { y2: sn(y) });
+        // Free movement (angled walls or breaking axis lock)
+        if (ds.end === 1) updateWall(w.id, { x1: snapped.x, y1: snapped.y });
+        else updateWall(w.id, { x2: snapped.x, y2: snapped.y });
       }
     } else if (ds.kind === "wall_move") {
-      const sn = (v: number) => Math.round(v * 4) / 4;
+      // Snap perpendicular position to nearby parallel wall lines / endpoints.
+      const target = ds.horizontal
+        ? { x: (ds.origX1 + ds.origX2) / 2, y: ds.origY1 + (y - ds.startY) }
+        : { x: ds.origX1 + (x - ds.startX), y: (ds.origY1 + ds.origY2) / 2 };
+      const snapped = snapPoint(target, { ignoreWallId: ds.id, report: true });
       if (ds.horizontal) {
-        const dy = y - ds.startY;
-        const ny = sn(ds.origY1 + dy);
+        const ny = Math.round(snapped.y * 4) / 4;
         updateWall(ds.id, { y1: ny, y2: ny });
       } else {
-        const dx = x - ds.startX;
-        const nx = sn(ds.origX1 + dx);
+        const nx = Math.round(snapped.x * 4) / 4;
         updateWall(ds.id, { x1: nx, x2: nx });
       }
     } else if (ds.kind === "wall_curve") {
